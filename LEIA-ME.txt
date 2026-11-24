@@ -1,0 +1,43 @@
+CONVERSOR DE ESCALAS 42h — COMO VIRAR APP (PWA)
+================================================
+
+Este pacote contém o app completo, pronto para instalar no celular.
+Arquivos: index.html, manifest.webmanifest, sw.js e os 3 ícones.
+Mantenha todos juntos, na mesma pasta.
+
+PASSO 1 — HOSPEDAR DE GRAÇA (escolha uma opção)
+-----------------------------------------------
+Opção A — Netlify Drop (mais fácil, sem conta de código):
+  1. Acesse  https://app.netlify.com/drop
+  2. Arraste a PASTA inteira (ou o .zip descompactado) para a página.
+  3. Ele gera um endereço https://... — esse é o link do seu app.
+
+Opção B — GitHub Pages:
+  1. Crie um repositório no GitHub e envie estes arquivos.
+  2. Settings > Pages > Branch: main > /(root) > Save.
+  3. O link aparece em alguns minutos.
+
+Opção C — Cloudflare Pages: cloudflare.com > Pages > Upload assets.
+
+Importante: precisa ser um endereço https (as três opções acima já são).
+
+PASSO 2 — INSTALAR NO CELULAR
+-----------------------------
+Android (Chrome):
+  - Abra o link do Passo 1.
+  - Menu (3 pontinhos) > "Adicionar à tela inicial" / "Instalar app".
+
+iPhone (Safari):
+  - Abra o link.
+  - Botão compartilhar > "Adicionar à Tela de Início".
+
+Pronto: vira um ícone, abre em tela cheia e funciona mesmo sem internet
+(depois de abrir uma vez).
+
+ATUALIZAR O APP
+---------------
+Para publicar uma nova versão, substitua os arquivos na hospedagem e
+troque "escala42-v1" por "escala42-v2" (etc.) na primeira linha do sw.js.
+
+Desenvolvido como ferramenta de apoio ao DP.
+Base: Portaria MTE 2.041/2026 (jornada de 42h e dois descansos semanais).
