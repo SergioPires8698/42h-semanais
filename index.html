@@ -199,7 +199,8 @@
         <label class="inline-chk"><input type="checkbox" id="avCCT"> Há CCT/ACT sobre a jornada</label>
         <div class="field" id="avCctWrap" style="flex:1"><label>Observação da CCT</label><input type="text" id="avCctObs" style="width:100%" placeholder="Ex.: divisor 200, folga domingo 1x/mês"></div>
       </div>
-      <label class="inline-chk" style="margin-top:12px"><input type="checkbox" id="avRodizio"> Alternar as folgas automáticas a cada semana (rodízio)</label>
+      <label class="inline-chk" style="margin-top:12px"><input type="checkbox" id="avAjustar"> Ajustar o horário para fechar a jornada (ex.: 8h24/dia na 5x2 = 42h)</label>
+      <label class="inline-chk" style="margin-top:10px"><input type="checkbox" id="avRodizio"> Alternar as folgas automáticas a cada semana (rodízio)</label>
     </div>
 
     <div class="card">
@@ -351,11 +352,11 @@ let store={empresas:[],sel:null};
 let uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 function novoModelo(nome,ent,sai,intv){ return {id:uid(),nome:nome||"Novo horário",entrada:ent||"08:00",saida:sai||"17:24",intervalo:intv==null?60:intv}; }
-function novoFunc(modeloId){ return {id:uid(),nome:"",funcao:"",salario:1800,divAtual:220,modeloId:modeloId||"custom",custom:{entrada:"08:00",saida:"17:24",intervalo:60},folgaAuto:true,folgas:[]}; }
+function novoFunc(modeloId){ return {id:uid(),nome:"",funcao:"",salario:1800,divAtual:220,modeloId:modeloId||"custom",custom:{entrada:"08:00",saida:"17:24",intervalo:60},folgaAuto:true,folgas:[],meioPeriodo:false}; }
 function novaEmpresa(){
   const m=novoModelo("Comercial","08:00","17:24",60);
   const f=novoFunc(m.id); f.nome="Funcionário 1";
-  return {id:uid(),empresa:"",setor:"",temCCT:false,cctObs:"",meta:2520,adNot:20,
+  return {id:uid(),empresa:"",setor:"",temCCT:false,cctObs:"",meta:2520,adNot:20,ajustar:true,
     operating:[1,2,3,4,5],peak:[],rodizio:false,modelos:[m],funcionarios:[f]};
 }
 function load(){ try{const r=localStorage.getItem(KEY); if(r)store=JSON.parse(r);}catch(e){}
@@ -370,6 +371,16 @@ function funcShift(esc,f){
   if(f.modeloId==="custom"||!f.modeloId) return {entrada:f.custom.entrada,saida:f.custom.saida,intervalo:+f.custom.intervalo||0};
   const m=esc.modelos.find(x=>x.id===f.modeloId);
   return m?{entrada:m.entrada,saida:m.saida,intervalo:+m.intervalo||0}:{entrada:"08:00",saida:"17:24",intervalo:60};
+}
+function funcWorkDays(esc,folga){ let n=0; for(const d of esc.operating) if(!folga.has(d)) n++; return n; }
+// horário efetivo: se "ajustar" estiver ligado (e não for meio período), estica a saída para fechar a meta
+function funcEffShift(esc,f,workDays){
+  const sh=funcShift(esc,f);
+  if(esc.ajustar!==false && !f.meioPeriodo && workDays>0){
+    const daily=Math.round(esc.meta/workDays);
+    return {entrada:sh.entrada,intervalo:sh.intervalo,saida:toHHMM(toMin(sh.entrada)+daily+sh.intervalo),adj:true};
+  }
+  return {entrada:sh.entrada,saida:sh.saida,intervalo:sh.intervalo,adj:false};
 }
 // folgas base (semana 0) por funcionário: manuais primeiro, automáticas equilibrando movimento/cobertura
 function computeFolgas(esc){
@@ -416,7 +427,7 @@ function renderEmpresaCard(){
   const e=cur();
   $("avEmpresa").value=e.empresa; $("avSetor").value=e.setor; $("avMeta").value=e.meta; $("avAdNot").value=e.adNot;
   $("avCCT").checked=e.temCCT; $("avCctObs").value=e.cctObs; $("avCctWrap").classList.toggle("hide",!e.temCCT);
-  $("avRodizio").checked=e.rodizio;
+  $("avAjustar").checked=e.ajustar!==false; $("avRodizio").checked=e.rodizio;
   renderDayChips("avDias", e.operating, null);
   renderDayChips("avPeak", e.peak, e.operating); // dias fora de funcionamento aparecem esmaecidos
 }
@@ -461,6 +472,7 @@ function renderFuncs(){
           <option value="220">220 (44h)</option><option value="200">200 (40h)</option><option value="180">180 (36h)</option><option value="150">150 (30h)</option></select></div>
         <div class="field"><label>Folgas</label><select data-fid="${f.id}" data-f="folgaAuto"><option value="auto">Automáticas</option><option value="manual">Escolher dias</option></select></div>
       </div>`;
+    html+=`<label class="inline-chk" style="margin-top:8px"><input type="checkbox" data-fid="${f.id}" data-f="meioPeriodo" ${f.meioPeriodo?"checked":""}> Meio período (mantém o horário cadastrado, sem ajustar para a jornada cheia)</label>`;
     html+=`<div class="manualWrap" data-fid="${f.id}" style="margin-top:8px"></div>`;
     div.innerHTML=html;
     c.appendChild(div);
@@ -485,17 +497,17 @@ function gridHTMLScreen(esc,info,k){
   ORD.forEach((d,oi)=>{ h+='<th>'+ORDN[oi]+(info.closed.includes(d)?' (fech.)':((esc.peak||[]).includes(d)?' (mov.)':''))+'</th>'; });
   h+='<th>Semana</th></tr></thead><tbody>';
   const cont=new Array(7).fill(0);
-  esc.funcionarios.forEach(f=>{ const sh=funcShift(esc,f); const folga=fs[f.id]; let tot=0;
+  esc.funcionarios.forEach(f=>{ const folga=fs[f.id]; const wd=funcWorkDays(esc,folga); const sh=funcEffShift(esc,f,wd); let tot=0;
     h+='<tr><td>'+escHtml(f.nome||"Funcionário")+'</td>';
-    for(let d=0;d<7;d++){
+    ORD.forEach(d=>{
       if(info.closed.includes(d)) h+='<td class="off">—</td>';
       else if(folga.has(d)) h+='<td class="off">Folga</td>';
       else { h+='<td class="on">'+sh.entrada+'–'+sh.saida+'</td>'; cont[d]++; tot+=shiftMin(sh); }
-    }
+    });
     h+='<td>'+fmtDur(tot)+'</td></tr>';
   });
   h+='</tbody><tfoot><tr class="total-row"><td>Em operação</td>';
-  for(let d=0;d<7;d++) h+='<td>'+(info.closed.includes(d)?'—':cont[d])+'</td>';
+  ORD.forEach(d=>{ h+='<td>'+(info.closed.includes(d)?'—':cont[d])+'</td>'; });
   h+='<td></td></tr></tfoot></table></div>';
   return h;
 }
@@ -504,6 +516,7 @@ function renderQuadro(){
   const rod=e.rodizio && info.autoIds.length>1;
   const semanas=rod?Math.min(info.autoIds.length,7):1;
   let h="";
+  if(e.ajustar!==false) h+='<p class="note" style="margin:0 0 8px">Horários ajustados automaticamente para fechar '+(e.meta/60)+'h/semana. Para usar o horário exato dos modelos, desligue em "Empresa".</p>';
   for(let k=0;k<semanas;k++){ if(semanas>1) h+='<h3 style="font-size:.9rem;margin:8px 0 4px">Semana '+(k+1)+'</h3>'; h+=gridHTMLScreen(e,info,k); }
   $("avQuadro").innerHTML=h;
   renderConformidade(e,info);
@@ -520,16 +533,16 @@ function renderConformidade(e,info){
   if(e.operating.length){ if(baixos.length) addAlert(al,"e","Sem ninguém em operação em: "+[...new Set(baixos)].slice(0,8).join(", ")+". Reveja folgas ou adicione gente.");
     else addAlert(al,"g","Cobertura garantida (pior dia: "+pior+" em operação)."); }
   // por funcionário
-  const fs0=folgasSemana(e,info,0);
+  const fs0=folgasSemana(e,info,0); const ajustar=e.ajustar!==false;
   e.funcionarios.forEach(f=>{
-    const sh=funcShift(e,f); const folga=fs0[f.id]; const nome=f.nome||"Funcionário";
-    const dur=shiftMin(sh); let dias=0; for(const d of e.operating) if(!folga.has(d)) dias++;
-    const tot=dur*dias; const folgasN=folga.size;
+    const folga=fs0[f.id]; const nome=f.nome||"Funcionário";
+    const dias=funcWorkDays(e,folga); const sh=funcEffShift(e,f,dias);
+    const dur=shiftMin(sh); const tot=dur*dias; const folgasN=folga.size;
     if(folgasN<2) addAlert(al,"e",nome+": só "+folgasN+" folga(s) na semana — a norma exige 2.");
-    if(tot>meta+1) addAlert(al,"w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h ("+dias+"× "+fmtDur(dur)+"). Ajuste horário ou folgas.");
-    else if(tot>0 && tot<meta-1) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana (abaixo de "+(meta/60)+"h — ok, jornada menor).");
-    if(semCCT && dur>504) addAlert(al,"e",nome+": jornada de "+fmtDur(dur)+"/dia passa de 8h24. Sem CCT, o limite do STF é 8h24/dia.");
-    else if(dur>600) addAlert(al,"w",nome+": "+fmtDur(dur)+"/dia — acima de 8h exige compensação/extra por CCT (teto 10h).");
+    if(dur>600) addAlert(al,"e",nome+": "+fmtDur(dur)+"/dia — acima de 10h não é permitido (teto diário). Dê mais folgas ou reveja o horário.");
+    else if(semCCT && dur>504) addAlert(al,(ajustar&&!f.meioPeriodo)?"w":"e",nome+": "+fmtDur(dur)+"/dia passa de 8h24. Sem CCT, o limite do STF é 8h24/dia.");
+    if(ajustar && !f.meioPeriodo){ if(dias>0 && Math.abs(tot-meta)<=2) addAlert(al,"g",nome+": "+dias+"× "+fmtDur(dur)+" = "+fmtDur(tot)+"/semana (fecha "+(meta/60)+"h)."); }
+    else { if(tot>meta+1) addAlert(al,"w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h."); else if(tot>0&&tot<meta-1) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana (abaixo de "+(meta/60)+"h — jornada menor)."); else if(tot>0) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana."); }
     if(dur>360 && (+sh.intervalo||0)<60) addAlert(al,"w",nome+": jornada acima de 6h exige intervalo mínimo de 1h.");
   });
 }
@@ -538,7 +551,7 @@ function renderFolhaAv(e,info){
   let h='<table style="min-width:520px"><thead><tr><th>Funcionário</th><th>Salário</th><th>Hora atual</th><th>Hora nova (÷'+div+')</th><th>Extra 50%</th><th>Extra 100%</th><th>Noturno/sem</th></tr></thead><tbody>';
   const fs0=folgasSemana(e,info,0);
   e.funcionarios.forEach(f=>{
-    const sh=funcShift(e,f); const folga=fs0[f.id]; const s=+f.salario||0;
+    const folga=fs0[f.id]; const wd=funcWorkDays(e,folga); const sh=funcEffShift(e,f,wd); const s=+f.salario||0;
     const dA=+f.divAtual||220; const hA=s/dA, hN=s/div;
     let dias=0,notMin=0; for(const d of e.operating){ if(!folga.has(d)){ dias++; notMin+=nightMinShift(sh); } }
     const horasNot=notMin/52.5; const adVal=horasNot*hN*((+e.adNot||0)/100);
@@ -579,13 +592,14 @@ function buildFolhaAv(){
     const fs=folgasSemana(e,info,k);
     h+='<h3 style="margin:12px 0 4px;font-size:13px">'+(semanas>1?("Semana "+(k+1)):"Escala semanal")+'</h3>';
     h+=gridHTMLPrint(e.funcionarios.length, i=>e.funcionarios[i].nome||("Funcionário "+(i+1)),
-        i=>{const f=e.funcionarios[i]; const sh=funcShift(e,f); const folga=fs[f.id];
+        i=>{const f=e.funcionarios[i]; const folga=fs[f.id]; const wd=funcWorkDays(e,folga); const sh=funcEffShift(e,f,wd);
             return d=>info.closed.includes(d)?null:(folga.has(d)?"folga":(sh.entrada+"–"+sh.saida));},
         info.closed, peak);
   }
-  // modelos usados
+  // horários usados
+  const fs0=folgasSemana(e,info,0);
   h+='<h3 style="margin:14px 0 4px;font-size:12px">Horários</h3><p style="font-size:11px;margin:0">';
-  h+=e.funcionarios.map(f=>{const sh=funcShift(e,f);return escHtml(f.nome||"Func")+": "+sh.entrada+"–"+sh.saida+almocoTxt(+sh.intervalo||0);}).join(" · ");
+  h+=e.funcionarios.map(f=>{const folga=fs0[f.id]; const wd=funcWorkDays(e,folga); const sh=funcEffShift(e,f,wd);return escHtml(f.nome||"Func")+": "+sh.entrada+"–"+sh.saida+almocoTxt(+sh.intervalo||0);}).join(" · ");
   h+='</p>'+legalFooter()+'</div>'; return h;
 }
 
@@ -597,6 +611,7 @@ function recalcAv(){ save(); renderQuadro(); }
 $("avMeta").addEventListener("change",()=>{cur().meta=+$("avMeta").value; recalcAv();});
 $("avAdNot").addEventListener("input",()=>{cur().adNot=+$("avAdNot").value; recalcAv();});
 $("avCCT").addEventListener("change",()=>{cur().temCCT=$("avCCT").checked; $("avCctWrap").classList.toggle("hide",!cur().temCCT); recalcAv();});
+$("avAjustar").addEventListener("change",()=>{cur().ajustar=$("avAjustar").checked; recalcAv();});
 $("avRodizio").addEventListener("change",()=>{cur().rodizio=$("avRodizio").checked; recalcAv();});
 $("avDias").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; const d=+b.dataset.d; const esc=cur();
   if(esc.operating.includes(d)){ esc.operating=esc.operating.filter(x=>x!==d); esc.peak=(esc.peak||[]).filter(x=>x!==d); }
@@ -637,6 +652,7 @@ $("avFuncs").addEventListener("change",e=>{ const t=e.target; const fid=t.datase
   if(k==="modeloId"){ f.modeloId=t.value; save(); renderFuncs(); renderQuadro(); }
   else if(k==="divAtual"){ f.divAtual=+t.value; save(); renderQuadro(); }
   else if(k==="folgaAuto"){ f.folgaAuto=(t.value==="auto"); if(!f.folgaAuto && !f.folgas.length){ /* sugere dias automáticos iniciais */ } save(); renderFuncs(); renderQuadro(); }
+  else if(k==="meioPeriodo"){ f.meioPeriodo=t.checked; save(); renderQuadro(); }
 });
 $("avFuncs").addEventListener("click",e=>{
   const del=e.target.closest("[data-delfunc]");
