@@ -3,64 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Conversor de Escalas — Jornada de 42h</title>
+<title>EscalaCerta — Jornada de 42h</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1f6feb">
+<meta name="theme-color" content="#3b5bdb">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Escala 42h">
+<meta name="apple-mobile-web-app-title" content="EscalaCerta">
 
 <style>
   :root{
-    --bg:#f5f6f8; --card:#fff; --ink:#1b1f24; --muted:#656c76; --line:#e3e6ea;
-    --accent:#1f6feb; --accent-soft:#e8f0fe; --ok:#1a7f37; --ok-soft:#e6f4ea;
-    --warn:#9a6700; --warn-soft:#fff4d6; --err:#cf222e; --err-soft:#ffebe9;
-    --folga:#f0f2f5; --chip:#eef1f4;
+    --bg:#f7f8fa; --card:#ffffff; --ink:#1f2933; --muted:#667085; --line:#e6e8ec;
+    --accent:#3b5bdb; --accent-soft:#eef1fb; --ok:#12805c; --ok-soft:#e7f4ee;
+    --warn:#8a6d00; --warn-soft:#fbf3d6; --err:#c0392b; --err-soft:#fbece9;
+    --folga:#f1f3f5; --chip:#eef0f3;
   }
   *{box-sizing:border-box}
   html{color-scheme:light}
   body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;padding:18px;color-scheme:light;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  .wrap{max-width:900px;margin:0 auto}
+  .wrap{max-width:960px;margin:0 auto}
   h1{font-size:1.35rem;margin:0 0 3px}
   .sub{color:var(--muted);font-size:.88rem;margin:0 0 16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:14px}
-  .card h2{font-size:.98rem;margin:0 0 12px}
+  .card h2{font-size:.98rem;margin:0 0 4px}
+  .card .hint{font-size:.78rem;color:var(--muted);margin:0 0 12px}
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
   .toolbar .grow{flex:1 1 180px}
   .field{display:flex;flex-direction:column;gap:4px}
   .field label{font-size:.76rem;color:var(--muted);font-weight:600}
   input,select{background:var(--bg);color:var(--ink);border:1px solid var(--line);
     border-radius:8px;padding:7px 9px;font-size:.9rem;font-family:inherit}
-  input[type=number]{width:90px}
+  input[type=number]{width:84px}
+  input[type=time]{width:120px}
   input[type=text]{min-width:120px}
   .row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
-  button{border:none;border-radius:8px;padding:8px 13px;font-size:.85rem;font-weight:600;
-    cursor:pointer;font-family:inherit}
+  button{border:none;border-radius:8px;padding:8px 13px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit}
   button.p{background:var(--accent);color:#fff}
   button.s{background:var(--chip);color:var(--ink);border:1px solid var(--line)}
   button.d{background:transparent;color:var(--err);border:1px solid var(--line)}
+  button.sm{padding:5px 9px;font-size:.78rem}
   .inline-chk{display:flex;align-items:center;gap:7px;font-size:.86rem;cursor:pointer;user-select:none}
   .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{border-collapse:collapse;width:100%;min-width:600px;font-size:.87rem}
+  table{border-collapse:collapse;width:100%;min-width:620px;font-size:.87rem}
   th,td{padding:7px 9px;text-align:center;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em}
   td:first-child,th:first-child{text-align:left;font-weight:600}
-  tr.folga td{background:var(--folga);color:var(--muted)}
+  td.off{background:var(--folga);color:var(--muted)}
+  td.on{color:var(--accent);font-weight:600}
   .total-row td{font-weight:700;border-top:2px solid var(--line)}
-  .result td.new{color:var(--accent);font-weight:700}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
   .stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px}
   .stat .lbl{font-size:.74rem;color:var(--muted);font-weight:600;margin-bottom:3px}
   .stat .val{font-size:1.2rem;font-weight:700}
   .alerts{display:flex;flex-direction:column;gap:7px;margin-top:4px}
-  .alert{padding:9px 11px;border-radius:9px;font-size:.83rem;display:flex;gap:8px}
+  .alert{padding:9px 11px;border-radius:9px;font-size:.83rem}
   .alert.g{background:var(--ok-soft);color:var(--ok)}
   .alert.w{background:var(--warn-soft);color:var(--warn)}
   .alert.e{background:var(--err-soft);color:var(--err)}
   .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.76rem;font-weight:700}
   .pill.ok{background:var(--ok-soft);color:var(--ok)}
-  .pill.warn{background:var(--warn-soft);color:var(--warn)}
   .note{font-size:.79rem;color:var(--muted);margin-top:9px}
   .hide{display:none!important}
   #folhaPrint{display:none}
@@ -74,6 +75,10 @@
   .seg button{background:var(--card);border:none;border-right:1px solid var(--line);padding:9px 15px;font-weight:600;color:var(--ink);border-radius:0}
   .seg button:last-child{border-right:none}
   .seg button.on{background:var(--accent);color:#fff}
+  .daychips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .daychips button{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font-weight:600;color:var(--ink);font-size:.82rem}
+  .daychips button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .daychips button.closed{opacity:.4}
   .big-sum{font-size:1.15rem;font-weight:700;margin-bottom:2px}
   .emp{border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:10px;background:var(--bg)}
   .emp .nm{font-weight:700;margin-bottom:8px}
@@ -82,23 +87,58 @@
   .day .dn{font-size:.68rem;opacity:.75;text-transform:uppercase;margin-bottom:2px}
   .day.work{background:var(--ok-soft);color:var(--ok)}
   .day.off{background:var(--folga);color:var(--muted)}
+  .item{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)}
+  .item .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+  .item .hd .t{font-weight:700}
   textarea{outline:none}
+  /* ---- EscalaCerta: cabeçalho, interações, rodapé ---- */
+  .topbar{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 18px;margin:-18px -18px 20px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;letter-spacing:.01em}
+  .brand .nm{font-weight:800;font-size:1.04rem;letter-spacing:-.01em}
+  .brand .tg{font-size:.68rem;font-weight:700;color:var(--muted);background:var(--chip);border-radius:999px;padding:2px 8px;margin-left:7px}
+  .topchip{font-size:.72rem;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 11px;white-space:nowrap}
+  @media(max-width:560px){ .topchip{display:none} }
+  .tabs{display:inline-flex;gap:4px;background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .tabs button{background:transparent;border:none;border-radius:7px;padding:7px 18px;font-weight:600;color:var(--muted);transition:all .15s ease}
+  .tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.08)}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);outline:none}
+  button{transition:filter .15s ease,background .15s ease}
+  button.p:hover{filter:brightness(.95)} button.s:hover{background:var(--line)}
+  .card{transition:box-shadow .15s ease}
+  #simples,#avancado{animation:fadein .2s ease}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .foot{color:var(--muted);font-size:.78rem;border-top:1px solid var(--line);padding-top:12px;margin-top:6px;
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .foot b{color:var(--ink);font-weight:700}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);
+    background:var(--ink);color:#fff;padding:8px 16px;border-radius:999px;font-size:.82rem;font-weight:600;
+    opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Conversor de Escalas — Jornada de 42h</h1>
-  <p class="sub">Portaria MTE 2.041/2026 · Decreto 13.173/2026 · EC 141/2026. Cadastre cada empresa, lance os horários atuais e obtenha a nova escala com verificação de conformidade.</p>
+  <header class="topbar noprint">
+    <div class="brand">
+      <div class="logo">EC</div>
+      <div><span class="nm">EscalaCerta</span><span class="tg">Jornada 42h</span></div>
+    </div>
+    <span class="topchip">Conforme Portaria MTE 2.041/2026</span>
+  </header>
 
-  <div class="toolbar noprint" style="margin-bottom:12px">
-    <button class="p" id="viewSimplesBtn">Simples</button>
-    <button class="s" id="viewAvancadoBtn">Avançado</button>
+  <div class="tabs noprint" style="margin-bottom:16px">
+    <button id="viewSimplesBtn" class="on">Simples</button>
+    <button id="viewAvancadoBtn">Avançado</button>
   </div>
 
+  <!-- ================= SIMPLES ================= -->
   <div id="simples">
     <div class="card">
       <h2>Monte a nova escala em 3 passos</h2>
-      <div class="field" style="margin-bottom:14px"><label>Empresa (opcional)</label><input type="text" id="sEmpresa" placeholder="Nome do cliente"></div>
+      <div class="field" style="margin-bottom:14px;margin-top:8px"><label>Empresa (opcional)</label><input type="text" id="sEmpresa" placeholder="Nome do cliente"></div>
       <label style="font-size:.78rem;color:var(--muted);font-weight:600">1. Quando a empresa funciona?</label>
       <div class="seg" id="sFunc" style="margin:6px 0 0"><button data-op="segsex" class="on">Seg a Sex</button><button data-op="segsab">Seg a Sáb</button><button data-op="todos">Todos os dias</button></div>
       <div style="margin-top:16px">
@@ -115,6 +155,7 @@
         <div class="field"><label>3. Nº de funcionários</label><input type="number" id="sN" value="1" min="1"></div>
         <div class="field" style="flex:1 1 240px"><label>Nomes (opcional, um por linha)</label><textarea id="sNomes" rows="2" placeholder="João&#10;Maria" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:.9rem;resize:vertical;width:100%"></textarea></div>
       </div>
+      <p class="note">Precisa de horários diferentes por funcionário ou situações mais complexas? Use a aba <b>Avançado</b>.</p>
     </div>
     <div class="card">
       <div class="big-sum" id="sResumo">—</div>
@@ -125,622 +166,128 @@
     </div>
   </div>
 
+  <!-- ================= AVANÇADO ================= -->
   <div id="avancado" class="hide">
-  <div class="toolbar noprint">
-    <div class="field grow">
-      <label>Escala atual</label>
-      <select id="selEscala"></select>
-    </div>
-    <button class="s" id="btnNova">+ Nova</button>
-    <button class="s" id="btnDup">Duplicar</button>
-    <button class="d" id="btnDel">Excluir</button>
-    <button class="s" id="btnPrint">PDF</button>
-    <button class="s" id="btnExport">Backup</button>
-    <button class="s" id="btnImport">Restaurar</button>
-    <input type="file" id="fileImport" accept="application/json" class="hide">
-  </div>
-
-  <div class="toolbar noprint" style="margin-top:-4px">
-    <button class="p" id="modoEscalaBtn">Converter escala</button>
-    <button class="s" id="modoReveBtn">Revezamento da equipe</button>
-  </div>
-
-  <div id="viewEscala">
-
-  <div class="card">
-    <h2>1. Identificação</h2>
-    <div class="row">
-      <div class="field"><label>Empresa / cliente</label><input type="text" id="empresa" placeholder="Ex.: Comércio X Ltda"></div>
-      <div class="field"><label>Setor / CNAE</label><input type="text" id="setor" placeholder="Ex.: 4744-0/99"></div>
-      <div class="field"><label>Nome da escala</label><input type="text" id="nomeEscala" placeholder="Ex.: Loja - vendedores"></div>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <label class="inline-chk"><input type="checkbox" id="temCCT"> Há CCT/ACT que dispõe sobre a jornada</label>
-      <div class="field" id="cctWrap"><label>Observação da CCT</label><input type="text" id="cctObs" placeholder="Ex.: divisor 200, folga domingo 1x/mês"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>2. Parâmetros</h2>
-    <div class="row">
-      <div class="field"><label>Modelo (preenche exemplo)</label>
-        <select id="tipo">
-          <option value="5x2">5x2 (seg–sex)</option>
-          <option value="6x1">6x1 (seg–sáb)</option>
-          <option value="comercio">Comércio c/ domingo</option>
-          <option value="turno6">Turno 6h (revezamento)</option>
-          <option value="12x36">12x36</option>
-          <option value="custom">Personalizado</option>
-        </select>
-      </div>
-      <div class="field"><label>Meta semanal</label>
-        <select id="meta"><option value="2520">42h (16/12/2026)</option><option value="2400">40h (16/12/2027)</option></select>
-      </div>
-      <div class="field" id="estrWrap"><label>Distribuir a redução</label>
-        <select id="estrategia">
-          <option value="igual">Igualar os dias trabalhados</option>
-          <option value="proporcional">Proporcional a cada dia</option>
-          <option value="dia">Abater em um dia específico</option>
-        </select>
-      </div>
-      <div class="field hide" id="diaWrap"><label>Dia que absorve</label><select id="diaAbsorve"></select></div>
-      <div class="field"><label>Adicional noturno (%)</label><input type="number" id="adNot" value="20" min="0" step="1"></div>
-    </div>
-    <label class="inline-chk" style="margin-top:12px"><input type="checkbox" id="auto" checked> Gerar automaticamente 2 folgas dentro de 42h</label>
-    <p class="note" id="notaCCT"></p>
-  </div>
-
-  <!-- Semanal -->
-  <div id="modoSemanal">
-    <div class="card">
-      <h2>3. Horários atuais</h2>
-      <div class="tbl-scroll">
-        <table id="tblIn">
-          <thead><tr><th>Dia</th><th>Folga</th><th>Entrada</th><th>Saída</th><th>Interv. (min)</th><th>Jornada</th><th>Noturno</th></tr></thead>
-          <tbody id="bodyIn"></tbody>
-          <tfoot><tr class="total-row"><td>Total/semana</td><td></td><td></td><td></td><td></td><td id="totalIn">—</td><td id="notIn">—</td></tr></tfoot>
-        </table>
-      </div>
+    <div class="toolbar noprint">
+      <div class="field grow"><label>Empresa</label><select id="selEmpresa"></select></div>
+      <button class="s" id="btnNova">+ Nova</button>
+      <button class="s" id="btnDup">Duplicar</button>
+      <button class="d" id="btnDel">Excluir</button>
+      <button class="p" id="btnPrintAv">Baixar PDF</button>
+      <button class="s" id="btnExport">Backup</button>
+      <button class="s" id="btnImport">Restaurar</button>
+      <input type="file" id="fileImport" accept="application/json" class="hide">
     </div>
 
     <div class="card">
-      <h2>4. Nova escala <span id="metaPill" class="pill ok">42h</span></h2>
-      <div class="tbl-scroll">
-        <table id="tblOut" class="result">
-          <thead><tr><th>Dia</th><th>Entrada</th><th>Saída nova</th><th>Intervalo</th><th>Jornada nova</th><th>Noturno</th></tr></thead>
-          <tbody id="bodyOut"></tbody>
-          <tfoot><tr class="total-row"><td>Total/semana</td><td></td><td></td><td></td><td id="totalOut">—</td><td id="notOut">—</td></tr></tfoot>
-        </table>
-      </div>
-      <p class="note" id="autoNota"></p>
-    </div>
-  </div>
-
-  <!-- 12x36 -->
-  <div id="modo1236" class="hide">
-    <div class="card">
-      <h2>3. Escala 12x36</h2>
+      <h2>Empresa</h2>
       <div class="row">
-        <div class="field"><label>Entrada</label><input type="time" id="t36ent" value="07:00"></div>
-        <div class="field"><label>Saída</label><input type="time" id="t36sai" value="19:00"></div>
-        <div class="field"><label>Intervalo (min)</label><input type="number" id="t36int" value="60"></div>
-        <div class="field"><label>Plantões no mês</label><input type="number" id="t36dias" value="15"></div>
-        <div class="field"><label>Dias no mês</label><input type="number" id="t36diasmes" value="30"></div>
-      </div>
-      <div class="grid" style="margin-top:14px">
-        <div class="stat"><div class="lbl">Horas por plantão</div><div class="val" id="h36plantao">—</div></div>
-        <div class="stat"><div class="lbl">Total no mês</div><div class="val" id="h36mes">—</div></div>
-        <div class="stat"><div class="lbl">Limite mensal (42h/sem)</div><div class="val" id="h36lim">—</div></div>
-        <div class="stat"><div class="lbl">Excedente</div><div class="val" id="h36exc">—</div></div>
-      </div>
-      <div class="alerts" id="alerts36" style="margin-top:12px"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>5. Conformidade</h2>
-    <div class="alerts" id="alerts"></div>
-  </div>
-
-  <div class="card">
-    <h2>6. Folha — valor da hora</h2>
-    <div class="row" style="margin-bottom:12px">
-      <div class="field"><label>Salário mensal (R$)</label><input type="number" id="salario" value="1800" step="0.01"></div>
-      <div class="field"><label>Divisor atual</label>
-        <select id="divAtual"><option value="220">220 (44h)</option><option value="200">200 (40h)</option><option value="180">180 (36h)</option><option value="150">150 (30h)</option></select>
-      </div>
-    </div>
-    <div class="grid">
-      <div class="stat"><div class="lbl">Hora atual (÷<span id="dA">220</span>)</div><div class="val" id="hA">—</div></div>
-      <div class="stat"><div class="lbl">Hora nova (÷<span id="dN">210</span>)</div><div class="val" id="hN">—</div></div>
-      <div class="stat"><div class="lbl">Variação da hora</div><div class="val" id="vH">—</div></div>
-      <div class="stat"><div class="lbl">Hora extra 50%</div><div class="val" id="he5">—</div></div>
-      <div class="stat"><div class="lbl">Hora extra 100%</div><div class="val" id="he10">—</div></div>
-      <div class="stat"><div class="lbl">Adicional noturno/sem</div><div class="val" id="adNotVal">—</div></div>
-    </div>
-    <p class="note">Salário mensal não muda; o valor da hora sobe pela queda do divisor (210 na 42h, 200 na 40h). Divisores menores em CCT/contrato, se mais favoráveis, prevalecem. Hora noturna reduzida (52min30s = 1h) considerada no adicional.</p>
-  </div>
-
-  </div><!-- /viewEscala -->
-
-  <div id="viewReve" class="hide">
-    <div class="card">
-      <h2>Revezamento da equipe</h2>
-      <p class="note" style="margin-top:0">Gera a escala de toda a equipe com folgas em rodízio (cada semana as 2 folgas giram pela semana), garantindo cobertura nos dias de funcionamento. Usa o horário do dia útil da escala atual (<span id="rvBase">—</span>), já em 42h.</p>
-      <div class="row" style="margin-top:10px">
-        <div class="field"><label>Nº de funcionários</label><input type="number" id="rvN" value="7" min="1"></div>
-        <div class="field"><label>Mínimo em operação/dia</label><input type="number" id="rvMin" value="1" min="0"></div>
-        <div class="field"><label>Semanas a gerar</label><input type="number" id="rvSem" value="7" min="1" max="12"></div>
+        <div class="field"><label>Nome / cliente</label><input type="text" id="avEmpresa" placeholder="Ex.: Comércio X Ltda"></div>
+        <div class="field"><label>Setor / CNAE</label><input type="text" id="avSetor" placeholder="Ex.: 4744-0/99"></div>
+        <div class="field"><label>Jornada</label><select id="avMeta"><option value="2520">42h (16/12/2026)</option><option value="2400">40h (16/12/2027)</option></select></div>
+        <div class="field"><label>Adicional noturno (%)</label><input type="number" id="avAdNot" value="20" min="0"></div>
       </div>
       <div style="margin-top:12px">
         <label style="font-size:.76rem;color:var(--muted);font-weight:600">Dias de funcionamento</label>
-        <div id="rvDias" class="row" style="gap:12px;margin-top:6px"></div>
+        <div class="daychips" id="avDias"></div>
       </div>
       <div style="margin-top:12px">
         <label style="font-size:.76rem;color:var(--muted);font-weight:600">Dias de maior movimento (todos trabalham)</label>
-        <div id="rvPeak" class="row" style="gap:12px;margin-top:6px"></div>
+        <div class="daychips" id="avPeak"></div>
       </div>
-      <label class="inline-chk" style="margin-top:12px"><input type="checkbox" id="rvRodizio"> Alternar folgas a cada semana (rodízio)</label>
-      <div class="field" style="margin-top:12px">
-        <label>Nomes (opcional, um por linha — substitui o número acima)</label>
-        <textarea id="rvNomes" rows="3" placeholder="Ex.:&#10;João&#10;Maria&#10;Pedro" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:.9rem;resize:vertical"></textarea>
+      <div class="row" style="margin-top:12px">
+        <label class="inline-chk"><input type="checkbox" id="avCCT"> Há CCT/ACT sobre a jornada</label>
+        <div class="field" id="avCctWrap" style="flex:1"><label>Observação da CCT</label><input type="text" id="avCctObs" style="width:100%" placeholder="Ex.: divisor 200, folga domingo 1x/mês"></div>
       </div>
-      <div class="row" style="margin-top:12px;align-items:center">
-        <button class="p" id="rvGerar">Gerar escala da equipe</button>
-        <span id="rvRecom" class="note" style="margin:0"></span>
-      </div>
-      <div class="alerts" id="rvAlerts" style="margin-top:12px"></div>
+      <label class="inline-chk" style="margin-top:12px"><input type="checkbox" id="avRodizio"> Alternar as folgas automáticas a cada semana (rodízio)</label>
     </div>
-    <div id="rvOut"></div>
+
+    <div class="card">
+      <h2>Modelos de horário</h2>
+      <p class="hint">Cadastre os tipos de jornada da empresa (ex.: Manhã, Tarde, Turno 6h). Depois é só atribuir a cada funcionário.</p>
+      <div id="avModelos"></div>
+      <button class="s sm" id="btnAddModelo">+ Adicionar modelo</button>
+    </div>
+
+    <div class="card">
+      <h2>Funcionários</h2>
+      <p class="hint">Cada funcionário usa um modelo de horário (ou um horário personalizado) e tem suas folgas — automáticas ou escolhidas por você.</p>
+      <div id="avFuncs"></div>
+      <button class="s sm" id="btnAddFunc">+ Adicionar funcionário</button>
+    </div>
+
+    <div class="card">
+      <h2>Quadro consolidado</h2>
+      <div id="avQuadro"></div>
+    </div>
+
+    <div class="card">
+      <h2>Conformidade</h2>
+      <div class="alerts" id="avAlerts"></div>
+    </div>
+
+    <div class="card">
+      <h2>Folha — valor da hora</h2>
+      <div class="tbl-scroll" id="avFolha"></div>
+      <p class="note">Divisor 210 (42h) ou 200 (40h). Salário mensal não muda; o valor da hora sobe pela queda do divisor. Hora noturna reduzida (52min30s = 1h) considerada no adicional.</p>
+    </div>
   </div>
 
-  </div><!-- /avancado -->
-
-  <p class="sub">Ferramenta de apoio ao DP. Os cálculos de noturno e interjornada são estimativas sobre os horários informados — confirme sempre a CCT de cada cliente e o texto oficial da norma antes de aplicar.</p>
+  <footer class="foot noprint">
+    <span>Base legal: EC 141/2026 · Decreto 13.173/2026 · Portaria MTE 2.041/2026. Confira a CCT de cada cliente.</span>
+  </footer>
   <div id="folhaPrint"></div>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 "use strict";
-const DIAS=["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
-const KEY="conversor42h_v2";
+/* ===== dias ===== */
+const RDIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"]; // 0..6
+const ORD=[1,2,3,4,5,6,0]; const ORDN=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+const SMAP={segsex:[1,2,3,4,5],segsab:[1,2,3,4,5,6],todos:[0,1,2,3,4,5,6]};
 
-/* ---------- cálculo (funções puras) ---------- */
+/* ===== helpers ===== */
+const $=id=>document.getElementById(id);
 function toMin(t){ if(!t) return null; const p=t.split(":"); return (+p[0])*60+(+p[1]); }
 function pad(n){ return String(n).padStart(2,"0"); }
 function toHHMM(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+":"+pad(m%60); }
 function fmtDur(m){ if(m==null) return "—"; m=Math.round(m); const h=Math.floor(m/60); return h+"h"+(m%60?pad(m%60):"00"); }
 function fmtH(m){ return (m/60).toLocaleString("pt-BR",{maximumFractionDigits:2})+"h"; }
-
-function workedMin(d){
-  if(d.folga) return 0;
-  const e=toMin(d.entrada), s=toMin(d.saida);
-  if(e==null||s==null) return 0;
-  let dur=s-e; if(dur<0) dur+=1440;
-  dur-=(+d.intervalo||0);
-  return dur>0?dur:0;
-}
-// minutos de relógio dentro de 22:00–05:00
-function nightMin(d){
-  if(d.folga) return 0;
-  let e=toMin(d.entrada), s=toMin(d.saida);
-  if(e==null||s==null) return 0;
-  if(s<=e) s+=1440;
-  let c=0;
-  for(let m=e;m<s;m++){ const x=((m%1440)+1440)%1440; if(x>=1320||x<300) c++; }
-  return c;
-}
-// redistribui para a meta; retorna array de minutos novos por dia (índices de dias trabalhados)
-function redistribuir(dias,meta,estrategia,diaAbsorve){
-  const total=dias.reduce((a,d)=>a+workedMin(d),0);
-  const trab=dias.map((d,i)=>({d,i})).filter(x=>!x.d.folga && workedMin(x.d)>0);
-  const out=dias.map(d=>workedMin(d));
-  if(trab.length===0||total===0) return out.map(()=>0);
-  if(estrategia==="igual"){
-    const por=Math.round(meta/trab.length);
-    trab.forEach(x=>out[x.i]=por);
-  }else if(estrategia==="proporcional"){
-    const f=meta/total;
-    trab.forEach(x=>out[x.i]=Math.round(workedMin(x.d)*f));
-  }else{ // dia específico
-    const idx=(diaAbsorve!=null && !dias[diaAbsorve].folga)?diaAbsorve:trab[trab.length-1].i;
-    const outrosMeta=total-workedMin(dias[idx]); // mantém os outros
-    // outros mantêm; o dia absorve a diferença total->meta
-    dias.forEach((d,i)=>{ out[i]= d.folga?0:workedMin(d); });
-    out[idx]=workedMin(dias[idx])-(total-meta);
-  }
-  // acerta arredondamento para fechar meta exata
-  let soma=0; dias.forEach((d,i)=>{ if(!d.folga) soma+=out[i]; });
-  const diff=meta-soma;
-  if(diff!==0){ const t=trab.find(x=>!dias[x.i].folga); if(t) out[t.i]+=diff; }
-  // zera folgas
-  dias.forEach((d,i)=>{ if(d.folga) out[i]=0; });
-  return out;
-}
-// garante 2 folgas: se faltar, transforma dias trabalhados em folga (preferência fim de semana)
-function autoFolga(dias,auto){
-  const flags=dias.map(d=>d.folga); let count=flags.filter(Boolean).length; const added=[];
-  if(auto){ const ordem=[6,5,4,3,2,1,0]; // Domingo, Sábado, Sexta...
-    for(const idx of ordem){ if(count>=2) break; if(!flags[idx]){ flags[idx]=true; count++; added.push(idx); } } }
-  const diasAlvo=dias.map((d,i)=> flags[i]?{folga:true,entrada:"",saida:"",intervalo:0}:{folga:false,entrada:d.entrada,saida:d.saida,intervalo:d.intervalo});
-  added.sort((a,b)=>a-b);
-  return {diasAlvo,added};
-}
-
-/* ---------- modelos ---------- */
-function modelo(tipo){
-  const F={folga:true,entrada:"",saida:"",intervalo:0};
-  const w=(e,s,i)=>({folga:false,entrada:e,saida:s,intervalo:i});
-  switch(tipo){
-    case "5x2": return [w("08:00","17:48",60),w("08:00","17:48",60),w("08:00","17:48",60),w("08:00","17:48",60),w("08:00","17:48",60),F,F];
-    case "6x1": return [w("08:00","16:00",60),w("08:00","16:00",60),w("08:00","16:00",60),w("08:00","16:00",60),w("08:00","16:00",60),w("08:00","16:00",60),F];
-    case "comercio": return [w("13:00","22:24",60),w("13:00","22:24",60),F,w("13:00","22:24",60),w("13:00","22:24",60),w("13:00","22:24",60),F];
-    case "turno6": return [w("06:00","12:15",15),w("06:00","12:15",15),w("06:00","12:15",15),w("06:00","12:15",15),w("06:00","12:15",15),F,F];
-    case "12x36": return null;
-    default: return [w("08:00","17:00",60),w("08:00","17:00",60),w("08:00","17:00",60),w("08:00","17:00",60),w("08:00","17:00",60),F,F];
-  }
-}
-function novaEscala(tipo){
-  return {id:Date.now()+"_"+Math.random().toString(36).slice(2,6),
-    empresa:"",setor:"",nome:"",temCCT:false,cctObs:"",
-    tipo:tipo||"5x2",meta:2520,estrategia:"igual",diaAbsorve:null,adNot:20,auto:true,
-    dias:modelo(tipo||"5x2")||modelo("5x2"),
-    t36:{ent:"07:00",sai:"19:00",int:60,dias:15,diasmes:30},
-    salario:1800,divAtual:220};
-}
-
-/* ---------- estado ---------- */
-let store={escalas:[],sel:null};
-function load(){ try{ const r=localStorage.getItem(KEY); if(r){ store=JSON.parse(r); } }catch(e){}
-  if(!store.escalas||!store.escalas.length){ const e=novaEscala("5x2"); e.nome="Exemplo 5x2"; store={escalas:[e],sel:e.id}; }
-  if(!store.sel||!store.escalas.find(x=>x.id===store.sel)) store.sel=store.escalas[0].id; }
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
-function cur(){ return store.escalas.find(x=>x.id===store.sel); }
-
-const $=id=>document.getElementById(id);
-
-/* ---------- render ---------- */
-function renderSel(){
-  const s=$("selEscala"); s.innerHTML="";
-  store.escalas.forEach(e=>{ const o=document.createElement("option"); o.value=e.id;
-    o.textContent=(e.empresa||"(sem empresa)")+" — "+(e.nome||"escala"); s.appendChild(o); });
-  s.value=store.sel;
-}
-function renderDiaAbsorve(){
-  const sel=$("diaAbsorve"); sel.innerHTML=""; const e=cur();
-  e.dias.forEach((d,i)=>{ if(!d.folga){ const o=document.createElement("option"); o.value=i; o.textContent=DIAS[i]; sel.appendChild(o);} });
-  if(e.diaAbsorve!=null) sel.value=e.diaAbsorve;
-}
-function renderForm(){
-  const e=cur();
-  $("empresa").value=e.empresa; $("setor").value=e.setor; $("nomeEscala").value=e.nome;
-  $("temCCT").checked=e.temCCT; $("cctObs").value=e.cctObs; $("cctWrap").classList.toggle("hide",!e.temCCT);
-  $("tipo").value=e.tipo; $("meta").value=e.meta; $("estrategia").value=e.estrategia;
-  $("adNot").value=e.adNot; $("salario").value=e.salario; $("divAtual").value=e.divAtual;
-  $("auto").checked=e.auto!==false;
-  $("diaWrap").classList.toggle("hide",e.estrategia!=="dia");
-  $("modo1236").classList.toggle("hide",e.tipo!=="12x36");
-  $("modoSemanal").classList.toggle("hide",e.tipo==="12x36");
-  $("estrWrap").classList.toggle("hide",e.tipo==="12x36");
-  if(e.tipo==="12x36"){ $("t36ent").value=e.t36.ent; $("t36sai").value=e.t36.sai; $("t36int").value=e.t36.int; $("t36dias").value=e.t36.dias; $("t36diasmes").value=e.t36.diasmes; }
-  renderDiaAbsorve();
-}
-function renderInput(){
-  const e=cur(); const body=$("bodyIn"); body.innerHTML="";
-  e.dias.forEach((d,i)=>{
-    const tr=document.createElement("tr"); if(d.folga) tr.className="folga";
-    tr.innerHTML=`<td>${DIAS[i]}</td>
-      <td><input type="checkbox" data-i="${i}" data-k="folga" ${d.folga?"checked":""}></td>
-      <td><input type="time" data-i="${i}" data-k="entrada" value="${d.entrada}" ${d.folga?"disabled":""}></td>
-      <td><input type="time" data-i="${i}" data-k="saida" value="${d.saida}" ${d.folga?"disabled":""}></td>
-      <td><input type="number" min="0" step="5" data-i="${i}" data-k="intervalo" value="${d.intervalo}" ${d.folga?"disabled":""}></td>
-      <td>${d.folga?"Folga":fmtDur(workedMin(d))}</td>
-      <td>${d.folga?"—":(nightMin(d)?fmtDur(nightMin(d)):"—")}</td>`;
-    body.appendChild(tr);
-  });
-}
-
-function brl(v){ return "R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function escHtml(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+function brl(v){ return "R$ "+(+v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function addAlert(c,kind,txt){ const d=document.createElement("div"); d.className="alert "+kind; d.textContent=txt; c.appendChild(d); }
+function workedMin(d){ if(d.folga) return 0; const e=toMin(d.entrada),s=toMin(d.saida); if(e==null||s==null)return 0; let dur=s-e; if(dur<0)dur+=1440; dur-=(+d.intervalo||0); return dur>0?dur:0; }
+function shiftMin(sh){ return workedMin({folga:false,entrada:sh.entrada,saida:sh.saida,intervalo:sh.intervalo}); }
+function nightMinShift(sh){ let e=toMin(sh.entrada),s=toMin(sh.saida); if(e==null||s==null)return 0; if(s<=e)s+=1440; let c=0; for(let m=e;m<s;m++){const x=((m%1440)+1440)%1440; if(x>=1320||x<300)c++;} return c; }
+function almocoTxt(intv){ return intv?(" (almoço de "+(intv>=60?(intv%60?Math.floor(intv/60)+"h"+(intv%60):(intv/60)+"h"):intv+" min")+")"):" (sem almoço)"; }
 
-function recalc(){
-  const e=cur();
-  $("dN").textContent=e.meta===2520?210:200;
-  $("metaPill").textContent=(e.meta/60)+"h";
-  $("notaCCT").textContent = e.temCCT
-    ? "Com CCT: distribuições alternativas e regimes compensatórios são possíveis conforme o instrumento coletivo."
-    : "Sem CCT: a cautelar do STF limita a 8h24/dia em 5 dias (os 24 min além da 8ª hora não são extra).";
-
-  const al=$("alerts"); al.innerHTML="";
-
-  if(e.tipo==="12x36"){ recalc1236(); recalcFolha(0); return; }
-
-  // total atual
-  let totalIn=0,notInM=0; e.dias.forEach(d=>{ totalIn+=workedMin(d); notInM+=nightMin(d); });
-  $("totalIn").textContent=fmtDur(totalIn); $("notIn").textContent=notInM?fmtDur(notInM):"—";
-
-  // nova escala (com 2 folgas automáticas)
-  const af=autoFolga(e.dias, e.auto!==false);
-  const alvo=af.diasAlvo;
-  const novos=redistribuir(alvo,e.meta,e.estrategia,e.diaAbsorve);
-  const body=$("bodyOut"); body.innerHTML=""; let totalOut=0,notOutM=0;
-  alvo.forEach((d,i)=>{
-    const tr=document.createElement("tr");
-    if(d.folga){ tr.className="folga"; const nova=af.added.includes(i)?" (nova)":""; tr.innerHTML=`<td>${DIAS[i]}</td><td colspan="3">Folga${nova} (DSR)</td><td>—</td><td>—</td>`; }
-    else{
-      const ent=toMin(d.entrada); const nm=novos[i];
-      const saida=ent!=null?toHHMM(ent+nm+(+d.intervalo||0)):"—";
-      const novoDia={folga:false,entrada:d.entrada,saida:saida,intervalo:d.intervalo};
-      const nn=nightMin(novoDia);
-      totalOut+=nm; notOutM+=nn;
-      tr.innerHTML=`<td>${DIAS[i]}</td><td>${d.entrada||"—"}</td><td class="new">${saida}</td><td>${(+d.intervalo||0)} min</td><td class="new">${fmtDur(nm)}</td><td>${nn?fmtDur(nn):"—"}</td>`;
-    }
-    body.appendChild(tr);
-  });
-  $("totalOut").textContent=fmtDur(totalOut); $("notOut").textContent=notOutM?fmtDur(notOutM):"—";
-  $("autoNota").textContent = af.added.length
-    ? ("Folga(s) adicionada(s) automaticamente: "+af.added.map(i=>DIAS[i]).join(", ")+". Jornada redistribuída para fechar "+(e.meta/60)+"h.")
-    : "";
-
-  // conformidade (sobre a escala nova)
-  const folgas=alvo.filter(d=>d.folga).length;
-  const trab=alvo.map((d,i)=>({d,i})).filter(x=>!x.d.folga && novos[x.i]>0);
-  const semCCT=!e.temCCT;
-  const maxDia=Math.max(0,...trab.map(x=>novos[x.i]));
-
-  if(folgas>=2) addAlert(al,"g",""+folgas+" folgas na semana — atende o mínimo de 2 descansos semanais.");
-  else addAlert(al,"e",""+folgas+" folga(s). A norma exige 2 DSR por semana (ou 2 na média mensal via CCT, com ao menos 1 a cada 6 dias).");
-
-  if(Math.abs(totalOut-e.meta)<=1) addAlert(al,"g","Nova escala fecha "+fmtDur(totalOut)+" — dentro da meta de "+(e.meta/60)+"h.");
-  else addAlert(al,"w","Nova escala soma "+fmtDur(totalOut)+", meta "+(e.meta/60)+"h. Ajuste a distribuição.");
-
-  if(semCCT && maxDia>504) addAlert(al,"e","Jornada diária de "+fmtDur(maxDia)+" passa de 8h24. Sem CCT, o limite do STF é 8h24/dia — use \"Igualar os dias\" em 5 dias ou firme acordo de compensação.");
-  else if(maxDia>600) addAlert(al,"w","Jornada de "+fmtDur(maxDia)+"/dia. Acima de 8h exige compensação/horas extras conforme CCT; teto diário de 10h (CLT art. 59).");
-
-  if(semCCT && trab.length>5) addAlert(al,"w",""+trab.length+" dias trabalhados sem CCT. O arranjo automático do STF é em 5 dias; 6 dias exigem regime compensatório em CCT.");
-
-  // intervalos
-  trab.forEach(x=>{ const w=workedMin(x.d), iv=+x.d.intervalo||0;
-    if(w>360 && iv<60) addAlert(al,"w",""+DIAS[x.i]+": jornada acima de 6h exige intervalo mínimo de 1h (atual "+iv+" min).");
-    else if(w>240 && w<=360 && iv<15) addAlert(al,"w",""+DIAS[x.i]+": jornada de 4h–6h exige intervalo mínimo de 15 min.");
-  });
-  // interjornada (11h entre dias trabalhados consecutivos, pela escala nova)
-  for(let i=0;i<7;i++){ const a=alvo[i], b=alvo[(i+1)%7];
-    if(!a.folga&&!b.folga){ const sa=toMin(a.entrada); if(sa!=null){
-      const fimA=sa+novos[i]+(+a.intervalo||0); const iniB=toMin(b.entrada)+1440;
-      const gap=iniB-fimA; if(gap<660) addAlert(al,"w","Interjornada "+DIAS[i]+"→"+DIAS[(i+1)%7]+" de "+fmtDur(gap)+" — mínimo legal é 11h.");
-    }}
-  }
-  if(e.temCCT && e.cctObs) addAlert(al,"g","CCT: "+e.cctObs);
-
-  recalcFolha(notOutM);
-}
-
-function recalc1236(){
-  const e=cur(); const d={folga:false,entrada:e.t36.ent,saida:e.t36.sai,intervalo:e.t36.int};
-  const porPlantao=workedMin(d);
-  const mes=porPlantao*(+e.t36.dias||0);
-  const limMes=(e.meta/60)*(+e.t36.diasmes||30)/7*60; // em minutos
-  $("h36plantao").textContent=fmtDur(porPlantao);
-  $("h36mes").textContent=fmtH(mes);
-  $("h36lim").textContent=fmtH(limMes);
-  const exc=mes-limMes;
-  $("h36exc").textContent=(exc>0?"+":"")+fmtH(exc);
-  const al=$("alerts36"); al.innerHTML="";
-  if(porPlantao>720) addAlert(al,"w","Plantão de "+fmtDur(porPlantao)+" acima de 12h efetivas.");
-  if(exc>1) addAlert(al,"e","Média mensal excede o teto em "+fmtH(exc)+". O excedente deve ser compensado ou pago como extra, conforme CCT.");
-  else addAlert(al,"g","Média mensal dentro do teto equivalente a "+(e.meta/60)+"h/semana.");
-  addAlert(al,"w","12x36 depende de previsão em CCT/ACT e precisa caber nos novos limites. Confirme o instrumento coletivo.");
-  // conformidade geral do 12x36 reaproveita painel principal vazio
-}
-
-function recalcFolha(notSemanaM){
-  const e=cur(); const s=+e.salario||0; const dA=+e.divAtual; const dN=e.meta===2520?210:200;
-  $("dA").textContent=dA; $("dN").textContent=dN;
-  const hA=s/dA, hN=s/dN;
-  $("hA").textContent=s?brl(hA):"—"; $("hN").textContent=s?brl(hN):"—";
-  $("vH").textContent=s&&dA?("+"+(((dA/dN)-1)*100).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%"):"—";
-  $("he5").textContent=s?brl(hN*1.5):"—"; $("he10").textContent=s?brl(hN*2):"—";
-  const horasNot=(notSemanaM||0)/52.5; // hora noturna reduzida
-  const adVal=horasNot*hN*((+e.adNot||0)/100);
-  $("adNotVal").textContent=s&&notSemanaM?brl(adVal):"—";
-}
-
-function renderAll(){ renderSel(); renderForm(); renderInput(); recalc(); }
-
-/* ---------- eventos ---------- */
-document.addEventListener("input",ev=>{
-  const t=ev.target; const e=cur();
-  if(t.dataset && t.dataset.i!==undefined){
-    const i=+t.dataset.i,k=t.dataset.k;
-    if(k==="folga"){ e.dias[i].folga=t.checked;
-      if(t.checked){e.dias[i].entrada="";e.dias[i].saida="";e.dias[i].intervalo=0;}
-      else{e.dias[i].entrada="08:00";e.dias[i].saida="17:24";e.dias[i].intervalo=60;}
-      renderInput(); renderDiaAbsorve();
-    } else if(k==="intervalo"){ e.dias[i][k]=+t.value; }
-    else { e.dias[i][k]=t.value; }
-    save(); recalc(); return;
-  }
-  switch(t.id){
-    case "empresa": e.empresa=t.value; renderSel(); break;
-    case "setor": e.setor=t.value; break;
-    case "nomeEscala": e.nome=t.value; renderSel(); break;
-    case "temCCT": e.temCCT=t.checked; $("cctWrap").classList.toggle("hide",!e.temCCT); break;
-    case "cctObs": e.cctObs=t.value; break;
-    case "meta": e.meta=+t.value; break;
-    case "estrategia": e.estrategia=t.value; $("diaWrap").classList.toggle("hide",e.estrategia!=="dia"); break;
-    case "diaAbsorve": e.diaAbsorve=+t.value; break;
-    case "adNot": e.adNot=+t.value; break;
-    case "auto": e.auto=t.checked; break;
-    case "salario": e.salario=+t.value; break;
-    case "divAtual": e.divAtual=+t.value; break;
-    case "t36ent": e.t36.ent=t.value; break;
-    case "t36sai": e.t36.sai=t.value; break;
-    case "t36int": e.t36.int=+t.value; break;
-    case "t36dias": e.t36.dias=+t.value; break;
-    case "t36diasmes": e.t36.diasmes=+t.value; break;
-  }
-  save(); recalc();
-});
-$("tipo").addEventListener("change",()=>{
-  const e=cur(); e.tipo=$("tipo").value;
-  if(e.tipo!=="12x36"){ const m=modelo(e.tipo); if(m) e.dias=m; }
-  save(); renderForm(); renderInput(); recalc();
-});
-$("selEscala").addEventListener("change",()=>{ store.sel=$("selEscala").value; save(); renderAll(); });
-$("btnNova").addEventListener("click",()=>{ const e=novaEscala("5x2"); e.nome="Nova escala"; store.escalas.push(e); store.sel=e.id; save(); renderAll(); });
-$("btnDup").addEventListener("click",()=>{ const c=JSON.parse(JSON.stringify(cur())); c.id=Date.now()+"_"+Math.random().toString(36).slice(2,6); c.nome=(c.nome||"escala")+" (cópia)"; store.escalas.push(c); store.sel=c.id; save(); renderAll(); });
-$("btnDel").addEventListener("click",()=>{ if(store.escalas.length<=1){ alert("Mantenha ao menos uma escala."); return; } if(!confirm("Excluir esta escala?")) return; store.escalas=store.escalas.filter(x=>x.id!==store.sel); store.sel=store.escalas[0].id; save(); renderAll(); });
-$("btnPrint").addEventListener("click",()=>window.print());
-let _downloads=null;
-if(window.claude&&claude.use){ claude.use("downloads").then(d=>{_downloads=d;}).catch(()=>{}); }
-$("btnExport").addEventListener("click",async()=>{
-  const data=JSON.stringify(store,null,2);
-  try{
-    const dl=_downloads||(window.claude&&claude.use?await claude.use("downloads"):null);
-    if(dl){ await dl.save({filename:"escalas-42h.json",data}); return; }
-  }catch(e){}
-  try{ const blob=new Blob([data],{type:"application/json"}); const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob); a.download="escalas-42h.json"; a.click(); URL.revokeObjectURL(a.href); }
-  catch(e){ alert("Não foi possível baixar o backup neste contexto."); }
-});
-$("btnImport").addEventListener("click",()=>$("fileImport").click());
-$("fileImport").addEventListener("change",ev=>{
-  const f=ev.target.files[0]; if(!f) return; const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.escalas&&d.escalas.length){ store=d; if(!store.sel) store.sel=store.escalas[0].id; save(); renderAll(); } else alert("Arquivo inválido."); }catch(e){ alert("Arquivo inválido."); } };
-  r.readAsText(f); ev.target.value="";
-});
-
-/* ---------- revezamento da equipe ---------- */
-const RDIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-function initRvDias(){
-  const c=$("rvDias");
-  if(!c.children.length){ RDIAS.forEach((d,i)=>{ const l=document.createElement("label"); l.className="inline-chk";
-    l.innerHTML=`<input type="checkbox" class="rvdia" value="${i}" checked> ${d}`; c.appendChild(l); }); }
-  const p=$("rvPeak");
-  if(p && !p.children.length){ RDIAS.forEach((d,i)=>{ const l=document.createElement("label"); l.className="inline-chk";
-    l.innerHTML=`<input type="checkbox" class="rvpeak" value="${i}"> ${d}`; p.appendChild(l); }); }
-}
-function baseShift(){
-  const e=cur(); const bw=(e.dias||[]).find(d=>!d.folga);
-  return {ent:(bw&&bw.entrada)||"08:00", int:(bw&&+bw.intervalo)||60};
-}
-// cfg = {operating, closed, need, N, peak}  (índices RDIAS: 0=Dom..6=Sáb)
-// Distribui as folgas de forma FIXA e equilibrada, evitando os dias de movimento (peak).
+/* ============================================================
+   SIMPLES
+   ============================================================ */
+let sOp="segsex"; let sPeak=new Set();
 function buildAssign(cfg){
   const {operating,closed,need,N,peak}=cfg;
-  const avail=operating.filter(d=>!peak.includes(d)); // dias onde pode haver folga
+  const avail=operating.filter(d=>!peak.includes(d));
   const assign=Array.from({length:N},()=>new Set());
-  if(need>0 && avail.length){
-    const count={}; avail.forEach(d=>count[d]=0);
-    for(let e=0;e<N;e++){
-      for(let s=0;s<need;s++){
-        let best=null,bc=Infinity;
-        for(const d of avail){ if(assign[e].has(d))continue; if(count[d]<bc){bc=count[d];best=d;} }
-        if(best===null)break; assign[e].add(best); count[best]++;
-      }
-    }
-  }
+  if(need>0 && avail.length){ const count={}; avail.forEach(d=>count[d]=0);
+    for(let e=0;e<N;e++){ for(let s=0;s<need;s++){ let best=null,bc=Infinity;
+      for(const d of avail){ if(assign[e].has(d))continue; if(count[d]<bc){bc=count[d];best=d;} }
+      if(best===null)break; assign[e].add(best); count[best]++; } } }
   const short=assign.some(s=>s.size<need);
   return {assign,avail,short};
 }
-// folgas do funcionário e na semana k. rodizio=false => folga fixa (mesma toda semana).
 function folgaSet(e,k,cfg,assign,rodizio){
-  const idx = rodizio ? (((e+k)%cfg.N)+cfg.N)%cfg.N : e;
-  const s=new Set(cfg.closed);
-  (assign[idx]||new Set()).forEach(d=>s.add(d));
-  return s;
+  const idx=rodizio?(((e+k)%cfg.N)+cfg.N)%cfg.N:e;
+  const s=new Set(cfg.closed); (assign[idx]||new Set()).forEach(d=>s.add(d)); return s;
 }
-function gerarReve(){
-  const e=cur();
-  const nomesRaw=$("rvNomes").value.trim();
-  const nomes=nomesRaw?nomesRaw.split(/\n+/).map(s=>s.trim()).filter(Boolean):null;
-  const N=nomes?nomes.length:Math.max(1,+$("rvN").value||1);
-  const minOp=+$("rvMin").value||0;
-  const rodizio=$("rvRodizio")?$("rvRodizio").checked:false;
-  const operating=Array.from(document.querySelectorAll(".rvdia:checked")).map(x=>+x.value).sort((a,b)=>a-b);
-  const peak=Array.from(document.querySelectorAll(".rvpeak:checked")).map(x=>+x.value).filter(d=>operating.includes(d));
-  const closed=[0,1,2,3,4,5,6].filter(d=>!operating.includes(d));
-  const need=Math.max(0,2-closed.length);
-  const workPerEmp=operating.length-need;
-  const perDay=workPerEmp>0?Math.round(e.meta/workPerEmp):0;
-  const bs=baseShift();
-  const saida=toHHMM(toMin(bs.ent)+perDay+bs.int);
-  const nome=i=>nomes?nomes[i]:("Func "+(i+1));
-  const cfg={operating,closed,need,N,peak};
-  const a=buildAssign(cfg);
-  const cicloMax=need===0?1:(need===2?7:operating.length);
-  const semanas=rodizio?Math.min(12,Math.max(1,+$("rvSem").value||cicloMax)):1;
-
-  const al=$("rvAlerts"); al.innerHTML="";
-  if(workPerEmp<=0){ addAlert(al,"e","Com esses dias de funcionamento não há dias úteis para o funcionário. Ajuste."); $("rvOut").innerHTML=""; return; }
-  if(a.short) addAlert(al,"e","Não há dias suficientes para 2 folgas (muitos dias de movimento ou poucos dias). Reduza os dias de movimento.");
-  addAlert(al, (Math.abs(perDay-504)<=1?"g":"w"), "Cada funcionário: "+workPerEmp+" dias × "+fmtDur(perDay)+" = "+fmtDur(perDay*workPerEmp)+"/semana ("+bs.ent+"–"+saida+"). Folga "+(rodizio?"em rodízio":"fixa")+".");
-
-  // cobertura
-  let piorDia=Infinity, diasBaixos=[];
-  for(let k=0;k<semanas;k++){ for(const d of operating){ let t=0;
-    for(let i=0;i<N;i++){ if(!folgaSet(i,k,cfg,a.assign,rodizio).has(d)) t++; }
-    if(t<piorDia) piorDia=t;
-    if(t<minOp) diasBaixos.push("S"+(k+1)+"/"+RDIAS[d]);
-  }}
-  const recom=operating.length?Math.ceil(minOp*operating.length/Math.max(1,workPerEmp)):0;
-  $("rvRecom").textContent="Recomendado p/ cobrir "+minOp+"/dia: ≥ "+recom+" funcionários.";
-  if(diasBaixos.length) addAlert(al,"e","Cobertura abaixo de "+minOp+" em: "+diasBaixos.slice(0,8).join(", ")+(diasBaixos.length>8?"…":"")+". Aumente a equipe (≥ "+recom+").");
-  else addAlert(al,"g","Cobertura garantida em todos os dias (pior dia: "+piorDia+" em operação).");
-
-  const out=$("rvOut"); out.innerHTML="";
-  for(let k=0;k<semanas;k++){
-    const card=document.createElement("div"); card.className="card";
-    let html='<h2>'+(semanas>1?("Semana "+(k+1)):"Escala semanal")+'</h2><div class="tbl-scroll"><table><thead><tr><th>Funcionário</th>';
-    RDIAS.forEach((d,di)=>{ html+='<th>'+d+(closed.includes(di)?' (fech.)':(peak.includes(di)?' (mov.)':''))+'</th>'; });
-    html+='</tr></thead><tbody>';
-    const cont=new Array(7).fill(0);
-    for(let i=0;i<N;i++){ const f=folgaSet(i,k,cfg,a.assign,rodizio);
-      html+='<tr><td>'+nome(i)+'</td>';
-      for(let d=0;d<7;d++){
-        if(closed.includes(d)) html+='<td class="folga" style="color:var(--muted)">—</td>';
-        else if(f.has(d)) html+='<td class="folga"><strong>Folga</strong></td>';
-        else { html+='<td class="new">'+bs.ent+'–'+saida+'</td>'; cont[d]++; }
-      }
-      html+='</tr>';
-    }
-    html+='</tbody><tfoot><tr class="total-row"><td>Em operação</td>';
-    for(let d=0;d<7;d++){ html+='<td>'+(closed.includes(d)?'—':cont[d])+'</td>'; }
-    html+='</tr></tfoot></table></div>';
-    card.innerHTML=html; out.appendChild(card);
-  }
-}
-
-/* ---------- modos ---------- */
-function setModo(m){
-  const esc=m==="escala";
-  $("viewEscala").classList.toggle("hide",!esc);
-  $("viewReve").classList.toggle("hide",esc);
-  $("modoEscalaBtn").className=esc?"p":"s";
-  $("modoReveBtn").className=esc?"s":"p";
-  if(!esc){ initRvDias(); const bs=baseShift(); const e=cur();
-    const pd=Math.round(e.meta/5); $("rvBase").textContent=bs.ent+"–"+toHHMM(toMin(bs.ent)+pd+bs.int); }
-}
-$("modoEscalaBtn").addEventListener("click",()=>setModo("escala"));
-$("modoReveBtn").addEventListener("click",()=>setModo("reve"));
-$("rvGerar").addEventListener("click",gerarReve);
-
-/* ---------- tela Simples ---------- */
-const ORD=[1,2,3,4,5,6,0]; const ORDN=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
-let sOp="segsex"; let sPeak=new Set();
 function renderPeakChips(){
-  const operating=({segsex:[1,2,3,4,5],segsab:[1,2,3,4,5,6],todos:[0,1,2,3,4,5,6]})[sOp]||[1,2,3,4,5];
-  const c=$("sPeakChips"); if(!c) return; c.innerHTML="";
-  ORD.forEach((d,oi)=>{ if(!operating.includes(d)) return;
-    const b=document.createElement("button"); b.type="button"; b.textContent=ORDN[oi];
-    b.className=sPeak.has(d)?"on":"";
+  const operating=SMAP[sOp]||SMAP.segsex; const c=$("sPeakChips"); if(!c)return; c.innerHTML="";
+  ORD.forEach((d,oi)=>{ if(!operating.includes(d))return;
+    const b=document.createElement("button"); b.type="button"; b.textContent=ORDN[oi]; b.className=sPeak.has(d)?"on":"";
     b.addEventListener("click",()=>{ if(sPeak.has(d))sPeak.delete(d); else sPeak.add(d); b.classList.toggle("on"); renderSimples(); });
-    c.appendChild(b);
-  });
+    c.appendChild(b); });
 }
-function escHtml(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
-const SMAP={segsex:[1,2,3,4,5],segsab:[1,2,3,4,5,6],todos:[0,1,2,3,4,5,6]};
 function simplesConfig(){
   const operating=SMAP[sOp]||SMAP.segsex;
   const closed=[0,1,2,3,4,5,6].filter(d=>!operating.includes(d));
@@ -752,18 +299,15 @@ function simplesConfig(){
   const rodizio=$("sRodizio")?$("sRodizio").checked:false;
   const workPerEmp=operating.length-need; const perDay=workPerEmp>0?Math.round(meta/workPerEmp):0;
   const saida=toHHMM(toMin(ent)+perDay+intv);
-  const cfg={operating,closed,need,N,peak};
-  const a=buildAssign(cfg);
+  const cfg={operating,closed,need,N,peak}; const a=buildAssign(cfg);
   return {operating,closed,need,ent,intv,meta,nomes,N,workPerEmp,perDay,saida,peak,rodizio,cfg,assign:a.assign,short:a.short};
 }
-function almocoTxt(intv){ return intv?(" (almoço de "+(intv>=60?(intv%60?Math.floor(intv/60)+"h"+(intv%60):(intv/60)+"h"):intv+" min")+")"):" (sem almoço)"; }
 function renderSimples(){
   const c=simplesConfig();
   $("sResumo").textContent="Nova escala: "+fmtDur(c.perDay)+" por dia · "+(c.meta/60)+"h por semana · 2 folgas";
   $("sHorario").textContent="Horário: "+c.ent+" às "+c.saida+almocoTxt(c.intv);
   const nome=i=>c.nomes?c.nomes[i]:("Funcionário "+(i+1));
-  const wrap=$("sStrips"); wrap.innerHTML="";
-  const showN=Math.min(c.N,8);
+  const wrap=$("sStrips"); wrap.innerHTML=""; const showN=Math.min(c.N,8);
   for(let i=0;i<showN;i++){
     const f=folgaSet(i,0,c.cfg,c.assign,c.rodizio);
     let html='<div class="emp"><div class="nm">'+escHtml(nome(i))+'</div><div class="strip">';
@@ -776,15 +320,15 @@ function renderSimples(){
   if(c.peak.length) addAlert(al,"g","Dias de movimento (todos trabalham): "+c.peak.map(d=>ORDN[ORD.indexOf(d)]).join(", ")+".");
   if(c.rodizio && c.need>0 && c.N>1) addAlert(al,"g","As folgas giram a cada semana — o PDF traz o quadro completo.");
   else if(c.need>0 && c.N>1) addAlert(al,"g","Folgas fixas (as mesmas toda semana). Marque \"alternar\" se quiser rodízio.");
-  const semCob=c.rodizio?7:1;
-  let pior=Infinity; for(let k=0;k<semCob;k++){ for(const d of c.operating){ let t=0; for(let i=0;i<c.N;i++){ if(!folgaSet(i,k,c.cfg,c.assign,c.rodizio).has(d)) t++; } if(t<pior)pior=t; } }
+  const semCob=c.rodizio?7:1; let pior=Infinity;
+  for(let k=0;k<semCob;k++){ for(const d of c.operating){ let t=0; for(let i=0;i<c.N;i++){ if(!folgaSet(i,k,c.cfg,c.assign,c.rodizio).has(d)) t++; } if(t<pior)pior=t; } }
   if(c.operating.length){
     if(pior<1) addAlert(al,"e","Com "+c.N+" funcionário(s) a empresa fica sem ninguém em alguns dias. Adicione mais pessoas.");
     else if(c.N>1) addAlert(al,"g","Sempre há pelo menos "+pior+" pessoa(s) trabalhando em cada dia.");
   }
   if(c.N>8) addAlert(al,"g","Na tela aparecem os 8 primeiros; o PDF inclui todos os "+c.N+".");
 }
-function buildFolha(){
+function buildFolhaSimples(){
   const c=simplesConfig(); const nome=i=>c.nomes?c.nomes[i]:("Funcionário "+(i+1));
   const semanas=c.rodizio?(c.need===0?1:(c.need===2?7:c.operating.length)):1;
   const emp=$("sEmpresa").value||""; const hoje=new Date().toLocaleDateString("pt-BR");
@@ -794,41 +338,348 @@ function buildFolha(){
   h+='<p style="text-align:center;margin:0 0 12px;font-size:12px">'+fmtDur(c.perDay)+'/dia · '+(c.meta/60)+'h/semana · '+c.ent+'–'+c.saida+almocoTxt(c.intv)+' · 2 folgas · '+hoje+'</p>';
   for(let k=0;k<semanas;k++){
     h+='<h3 style="margin:12px 0 4px;font-size:13px">'+(semanas>1?("Semana "+(k+1)):"Escala semanal")+'</h3>';
-    h+='<table style="border-collapse:collapse;width:100%;font-size:11px"><thead><tr>';
-    h+='<th style="border:1px solid #000;padding:4px;text-align:left">Funcionário</th>';
-    ORDN.forEach((d,oi)=>{ h+='<th style="border:1px solid #000;padding:4px">'+d+(c.closed.includes(ORD[oi])?" (fech.)":"")+'</th>'; });
-    h+='</tr></thead><tbody>';
-    const cont=new Array(7).fill(0);
-    for(let i=0;i<c.N;i++){ const f=folgaSet(i,k,c.cfg,c.assign,c.rodizio);
-      h+='<tr><td style="border:1px solid #000;padding:4px;text-align:left">'+escHtml(nome(i))+'</td>';
-      ORD.forEach((d,oi)=>{ const off=c.closed.includes(d)||f.has(d); if(!off)cont[oi]++;
-        h+='<td style="border:1px solid #000;padding:4px;text-align:center">'+(off?"Folga":(c.ent+"–"+c.saida))+'</td>'; });
-      h+='</tr>';
-    }
-    h+='<tr><td style="border:1px solid #000;padding:4px;text-align:left;font-weight:bold">Em operação</td>';
-    ORD.forEach((d,oi)=>{ h+='<td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold">'+(c.closed.includes(d)?"—":cont[oi])+'</td>'; });
-    h+='</tr></tbody></table>';
+    h+=gridHTMLPrint(c.N,nome,(i)=>{const f=folgaSet(i,k,c.cfg,c.assign,c.rodizio);return (d)=>c.closed.includes(d)?null:(f.has(d)?"folga":(c.ent+"–"+c.saida));},c.closed,[]);
   }
-  h+='<p style="font-size:10px;margin-top:12px;color:#333">Conforme Portaria MTE 2.041/2026 (jornada de 42h e dois descansos semanais). Confira a CCT da categoria antes de aplicar.</p></div>';
+  h+=legalFooter()+'</div>'; return h;
+}
+
+/* ============================================================
+   AVANÇADO — Empresa → Funcionários
+   ============================================================ */
+const KEY="conversor42h_v3";
+let store={empresas:[],sel:null};
+let uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+function novoModelo(nome,ent,sai,intv){ return {id:uid(),nome:nome||"Novo horário",entrada:ent||"08:00",saida:sai||"17:24",intervalo:intv==null?60:intv}; }
+function novoFunc(modeloId){ return {id:uid(),nome:"",funcao:"",salario:1800,divAtual:220,modeloId:modeloId||"custom",custom:{entrada:"08:00",saida:"17:24",intervalo:60},folgaAuto:true,folgas:[]}; }
+function novaEmpresa(){
+  const m=novoModelo("Comercial","08:00","17:24",60);
+  const f=novoFunc(m.id); f.nome="Funcionário 1";
+  return {id:uid(),empresa:"",setor:"",temCCT:false,cctObs:"",meta:2520,adNot:20,
+    operating:[1,2,3,4,5],peak:[],rodizio:false,modelos:[m],funcionarios:[f]};
+}
+function load(){ try{const r=localStorage.getItem(KEY); if(r)store=JSON.parse(r);}catch(e){}
+  if(!store.empresas||!store.empresas.length){ const e=novaEmpresa(); e.empresa="Exemplo"; store={empresas:[e],sel:e.id}; }
+  if(!store.sel||!store.empresas.find(x=>x.id===store.sel)) store.sel=store.empresas[0].id; }
+let _saveT=null;
+function showToast(msg){ const t=$("toast"); if(!t)return; t.textContent=msg||"Salvo"; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1300); }
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){} clearTimeout(_saveT); _saveT=setTimeout(()=>showToast("Salvo"),550); }
+function cur(){ return store.empresas.find(x=>x.id===store.sel); }
+
+function funcShift(esc,f){
+  if(f.modeloId==="custom"||!f.modeloId) return {entrada:f.custom.entrada,saida:f.custom.saida,intervalo:+f.custom.intervalo||0};
+  const m=esc.modelos.find(x=>x.id===f.modeloId);
+  return m?{entrada:m.entrada,saida:m.saida,intervalo:+m.intervalo||0}:{entrada:"08:00",saida:"17:24",intervalo:60};
+}
+// folgas base (semana 0) por funcionário: manuais primeiro, automáticas equilibrando movimento/cobertura
+function computeFolgas(esc){
+  const operating=esc.operating, peak=(esc.peak||[]).filter(d=>operating.includes(d));
+  const closed=[0,1,2,3,4,5,6].filter(d=>!operating.includes(d));
+  const avail=operating.filter(d=>!peak.includes(d));
+  const need=Math.max(0,2-closed.length);
+  const count={}; avail.forEach(d=>count[d]=0);
+  const base={}; const autoIds=[];
+  esc.funcionarios.forEach(f=>{ if(!f.folgaAuto){ const s=new Set(closed);
+    (f.folgas||[]).forEach(d=>{ if(operating.includes(d)){ s.add(d); if(avail.includes(d)) count[d]=(count[d]||0)+1; } });
+    base[f.id]=s; } });
+  esc.funcionarios.forEach(f=>{ if(f.folgaAuto){ autoIds.push(f.id); const s=new Set(closed);
+    for(let k=0;k<need;k++){ let best=null,bc=Infinity;
+      for(const d of avail){ if(s.has(d))continue; if(count[d]<bc){bc=count[d];best=d;} }
+      if(best===null)break; s.add(best); count[best]=(count[best]||0)+1; }
+    base[f.id]=s; } });
+  return {base,closed,avail,need,autoIds};
+}
+function folgasSemana(esc,info,k){
+  const map={}; const rod=esc.rodizio && info.autoIds.length>1;
+  esc.funcionarios.forEach(f=>{
+    if(!f.folgaAuto || !rod){ map[f.id]=info.base[f.id]; }
+    else { const i=info.autoIds.indexOf(f.id); const src=info.autoIds[((i+k)%info.autoIds.length+info.autoIds.length)%info.autoIds.length]; map[f.id]=info.base[src]; }
+  });
+  return map;
+}
+
+/* ---- render Avançado ---- */
+function renderSelEmpresa(){ const s=$("selEmpresa"); s.innerHTML="";
+  store.empresas.forEach(e=>{ const o=document.createElement("option"); o.value=e.id; o.textContent=e.empresa||"(sem nome)"; s.appendChild(o); });
+  s.value=store.sel;
+}
+function renderDayChips(containerId, selected, closedForPeak){
+  const c=$(containerId); c.innerHTML="";
+  ORD.forEach((d,oi)=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=ORDN[oi]; b.dataset.d=d;
+    const on=selected.includes(d); b.className=on?"on":"";
+    if(closedForPeak && !closedForPeak.includes(d)) b.classList.add("closed");
+    c.appendChild(b);
+  });
+}
+function renderEmpresaCard(){
+  const e=cur();
+  $("avEmpresa").value=e.empresa; $("avSetor").value=e.setor; $("avMeta").value=e.meta; $("avAdNot").value=e.adNot;
+  $("avCCT").checked=e.temCCT; $("avCctObs").value=e.cctObs; $("avCctWrap").classList.toggle("hide",!e.temCCT);
+  $("avRodizio").checked=e.rodizio;
+  renderDayChips("avDias", e.operating, null);
+  renderDayChips("avPeak", e.peak, e.operating); // dias fora de funcionamento aparecem esmaecidos
+}
+function renderModelos(){
+  const e=cur(); const c=$("avModelos"); c.innerHTML="";
+  e.modelos.forEach(m=>{
+    const dur=shiftMin(m);
+    const div=document.createElement("div"); div.className="item";
+    div.innerHTML=`<div class="row">
+      <div class="field"><label>Nome</label><input type="text" data-mid="${m.id}" data-f="nome" value="${escHtml(m.nome)}"></div>
+      <div class="field"><label>Entrada</label><input type="time" data-mid="${m.id}" data-f="entrada" value="${m.entrada}"></div>
+      <div class="field"><label>Saída</label><input type="time" data-mid="${m.id}" data-f="saida" value="${m.saida}"></div>
+      <div class="field"><label>Intervalo (min)</label><input type="number" min="0" step="5" data-mid="${m.id}" data-f="intervalo" value="${m.intervalo}"></div>
+      <div class="field"><label>Jornada</label><div style="font-weight:700;padding:7px 0">${fmtDur(dur)}</div></div>
+      <button class="d sm" data-delmodelo="${m.id}">Remover</button>
+    </div>`;
+    c.appendChild(div);
+  });
+}
+function renderFuncs(){
+  const e=cur(); const c=$("avFuncs"); c.innerHTML="";
+  const opcoes=e.modelos.map(m=>`<option value="${m.id}">${escHtml(m.nome)} (${m.entrada}–${m.saida})</option>`).join("")+`<option value="custom">Personalizado…</option>`;
+  e.funcionarios.forEach(f=>{
+    const isCustom=f.modeloId==="custom"||!e.modelos.find(m=>m.id===f.modeloId);
+    const div=document.createElement("div"); div.className="item";
+    let html=`<div class="hd"><span class="t">${escHtml(f.nome||"Funcionário")}</span><button class="d sm" data-delfunc="${f.id}">Remover</button></div>
+      <div class="row">
+        <div class="field"><label>Nome</label><input type="text" data-fid="${f.id}" data-f="nome" value="${escHtml(f.nome)}"></div>
+        <div class="field"><label>Função</label><input type="text" data-fid="${f.id}" data-f="funcao" value="${escHtml(f.funcao)}" placeholder="opcional"></div>
+        <div class="field"><label>Horário</label><select data-fid="${f.id}" data-f="modeloId">${opcoes}</select></div>
+      </div>`;
+    if(isCustom){
+      html+=`<div class="row" style="margin-top:10px">
+        <div class="field"><label>Entrada</label><input type="time" data-fid="${f.id}" data-f="c_entrada" value="${f.custom.entrada}"></div>
+        <div class="field"><label>Saída</label><input type="time" data-fid="${f.id}" data-f="c_saida" value="${f.custom.saida}"></div>
+        <div class="field"><label>Intervalo (min)</label><input type="number" min="0" step="5" data-fid="${f.id}" data-f="c_intervalo" value="${f.custom.intervalo}"></div>
+      </div>`;
+    }
+    html+=`<div class="row" style="margin-top:10px">
+        <div class="field"><label>Salário mensal (R$)</label><input type="number" step="0.01" data-fid="${f.id}" data-f="salario" value="${f.salario}"></div>
+        <div class="field"><label>Divisor atual</label><select data-fid="${f.id}" data-f="divAtual">
+          <option value="220">220 (44h)</option><option value="200">200 (40h)</option><option value="180">180 (36h)</option><option value="150">150 (30h)</option></select></div>
+        <div class="field"><label>Folgas</label><select data-fid="${f.id}" data-f="folgaAuto"><option value="auto">Automáticas</option><option value="manual">Escolher dias</option></select></div>
+      </div>`;
+    html+=`<div class="manualWrap" data-fid="${f.id}" style="margin-top:8px"></div>`;
+    div.innerHTML=html;
+    c.appendChild(div);
+    div.querySelector(`select[data-f="modeloId"]`).value=isCustom?"custom":f.modeloId;
+    div.querySelector(`select[data-f="divAtual"]`).value=f.divAtual;
+    div.querySelector(`select[data-f="folgaAuto"]`).value=f.folgaAuto?"auto":"manual";
+    if(!f.folgaAuto){
+      const mw=div.querySelector(`.manualWrap`);
+      const lab=document.createElement("label"); lab.style.cssText="font-size:.76rem;color:var(--muted);font-weight:600"; lab.textContent="Dias de folga";
+      mw.appendChild(lab);
+      const dc=document.createElement("div"); dc.className="daychips";
+      ORD.forEach((d,oi)=>{ if(!e.operating.includes(d))return;
+        const b=document.createElement("button"); b.type="button"; b.textContent=ORDN[oi]; b.dataset.folgafid=f.id; b.dataset.d=d;
+        b.className=(f.folgas||[]).includes(d)?"on":""; dc.appendChild(b); });
+      mw.appendChild(dc);
+    }
+  });
+}
+function gridHTMLScreen(esc,info,k){
+  const fs=folgasSemana(esc,info,k);
+  let h='<div class="tbl-scroll"><table><thead><tr><th>Funcionário</th>';
+  ORD.forEach((d,oi)=>{ h+='<th>'+ORDN[oi]+(info.closed.includes(d)?' (fech.)':((esc.peak||[]).includes(d)?' (mov.)':''))+'</th>'; });
+  h+='<th>Semana</th></tr></thead><tbody>';
+  const cont=new Array(7).fill(0);
+  esc.funcionarios.forEach(f=>{ const sh=funcShift(esc,f); const folga=fs[f.id]; let tot=0;
+    h+='<tr><td>'+escHtml(f.nome||"Funcionário")+'</td>';
+    for(let d=0;d<7;d++){
+      if(info.closed.includes(d)) h+='<td class="off">—</td>';
+      else if(folga.has(d)) h+='<td class="off">Folga</td>';
+      else { h+='<td class="on">'+sh.entrada+'–'+sh.saida+'</td>'; cont[d]++; tot+=shiftMin(sh); }
+    }
+    h+='<td>'+fmtDur(tot)+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr class="total-row"><td>Em operação</td>';
+  for(let d=0;d<7;d++) h+='<td>'+(info.closed.includes(d)?'—':cont[d])+'</td>';
+  h+='<td></td></tr></tfoot></table></div>';
   return h;
 }
-document.querySelectorAll("#sFunc button").forEach(b=>b.addEventListener("click",()=>{
-  sOp=b.dataset.op; document.querySelectorAll("#sFunc button").forEach(x=>x.classList.toggle("on",x===b));
-  renderPeakChips(); renderSimples();
-}));
-["sEmpresa","sEnt","sInt","sMeta","sN","sNomes","sRodizio"].forEach(id=>{ const el=$(id); if(el) el.addEventListener("input",renderSimples); });
-$("sRodizio").addEventListener("change",renderSimples);
-$("sPrint").addEventListener("click",()=>{ $("folhaPrint").innerHTML=buildFolha(); setTimeout(()=>window.print(),50); });
+function renderQuadro(){
+  const e=cur(); const info=computeFolgas(e);
+  const rod=e.rodizio && info.autoIds.length>1;
+  const semanas=rod?Math.min(info.autoIds.length,7):1;
+  let h="";
+  for(let k=0;k<semanas;k++){ if(semanas>1) h+='<h3 style="font-size:.9rem;margin:8px 0 4px">Semana '+(k+1)+'</h3>'; h+=gridHTMLScreen(e,info,k); }
+  $("avQuadro").innerHTML=h;
+  renderConformidade(e,info);
+  renderFolhaAv(e,info);
+}
+function renderConformidade(e,info){
+  const al=$("avAlerts"); al.innerHTML=""; const semCCT=!e.temCCT; const meta=e.meta;
+  if(!e.funcionarios.length){ addAlert(al,"w","Adicione funcionários para montar o quadro."); return; }
+  // cobertura
+  const rod=e.rodizio && info.autoIds.length>1; const semanas=rod?info.autoIds.length:1;
+  let pior=Infinity, baixos=[];
+  for(let k=0;k<semanas;k++){ const fs=folgasSemana(e,info,k);
+    for(const d of e.operating){ let t=0; e.funcionarios.forEach(f=>{ if(!fs[f.id].has(d)) t++; }); if(t<pior)pior=t; if(t<1) baixos.push((semanas>1?("S"+(k+1)+"/"):"")+ORDN[ORD.indexOf(d)]); } }
+  if(e.operating.length){ if(baixos.length) addAlert(al,"e","Sem ninguém em operação em: "+[...new Set(baixos)].slice(0,8).join(", ")+". Reveja folgas ou adicione gente.");
+    else addAlert(al,"g","Cobertura garantida (pior dia: "+pior+" em operação)."); }
+  // por funcionário
+  const fs0=folgasSemana(e,info,0);
+  e.funcionarios.forEach(f=>{
+    const sh=funcShift(e,f); const folga=fs0[f.id]; const nome=f.nome||"Funcionário";
+    const dur=shiftMin(sh); let dias=0; for(const d of e.operating) if(!folga.has(d)) dias++;
+    const tot=dur*dias; const folgasN=folga.size;
+    if(folgasN<2) addAlert(al,"e",nome+": só "+folgasN+" folga(s) na semana — a norma exige 2.");
+    if(tot>meta+1) addAlert(al,"w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h ("+dias+"× "+fmtDur(dur)+"). Ajuste horário ou folgas.");
+    else if(tot>0 && tot<meta-1) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana (abaixo de "+(meta/60)+"h — ok, jornada menor).");
+    if(semCCT && dur>504) addAlert(al,"e",nome+": jornada de "+fmtDur(dur)+"/dia passa de 8h24. Sem CCT, o limite do STF é 8h24/dia.");
+    else if(dur>600) addAlert(al,"w",nome+": "+fmtDur(dur)+"/dia — acima de 8h exige compensação/extra por CCT (teto 10h).");
+    if(dur>360 && (+sh.intervalo||0)<60) addAlert(al,"w",nome+": jornada acima de 6h exige intervalo mínimo de 1h.");
+  });
+}
+function renderFolhaAv(e,info){
+  const div=e.meta===2520?210:200;
+  let h='<table style="min-width:520px"><thead><tr><th>Funcionário</th><th>Salário</th><th>Hora atual</th><th>Hora nova (÷'+div+')</th><th>Extra 50%</th><th>Extra 100%</th><th>Noturno/sem</th></tr></thead><tbody>';
+  const fs0=folgasSemana(e,info,0);
+  e.funcionarios.forEach(f=>{
+    const sh=funcShift(e,f); const folga=fs0[f.id]; const s=+f.salario||0;
+    const dA=+f.divAtual||220; const hA=s/dA, hN=s/div;
+    let dias=0,notMin=0; for(const d of e.operating){ if(!folga.has(d)){ dias++; notMin+=nightMinShift(sh); } }
+    const horasNot=notMin/52.5; const adVal=horasNot*hN*((+e.adNot||0)/100);
+    h+='<tr><td>'+escHtml(f.nome||"Funcionário")+'</td><td>'+(s?brl(s):"—")+'</td><td>'+(s?brl(hA):"—")+'</td><td class="on">'+(s?brl(hN):"—")+'</td><td>'+(s?brl(hN*1.5):"—")+'</td><td>'+(s?brl(hN*2):"—")+'</td><td>'+(s&&notMin?brl(adVal):"—")+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  $("avFolha").innerHTML=h;
+}
+function renderAvancado(){ renderSelEmpresa(); renderEmpresaCard(); renderModelos(); renderFuncs(); renderQuadro(); }
 
+/* ---- PDF Avançado ---- */
+function gridHTMLPrint(N,nome,folgaFnFactory,closed,peak){
+  let h='<table style="border-collapse:collapse;width:100%;font-size:11px"><thead><tr>';
+  h+='<th style="border:1px solid #000;padding:4px;text-align:left">Funcionário</th>';
+  ORDN.forEach((dn,oi)=>{ const d=ORD[oi]; h+='<th style="border:1px solid #000;padding:4px">'+dn+(closed.includes(d)?' (fech.)':(peak.includes(d)?' (mov.)':''))+'</th>'; });
+  h+='</tr></thead><tbody>';
+  const cont=new Array(7).fill(0);
+  for(let i=0;i<N;i++){ const cell=folgaFnFactory(i);
+    h+='<tr><td style="border:1px solid #000;padding:4px;text-align:left">'+escHtml(nome(i))+'</td>';
+    ORD.forEach((d,oi)=>{ const v=cell(d); if(v===null){ h+='<td style="border:1px solid #000;padding:4px;text-align:center;color:#888">—</td>'; }
+      else if(v==="folga"){ h+='<td style="border:1px solid #000;padding:4px;text-align:center">Folga</td>'; }
+      else { h+='<td style="border:1px solid #000;padding:4px;text-align:center">'+v+'</td>'; cont[oi]++; } });
+    h+='</tr>'; }
+  h+='<tr><td style="border:1px solid #000;padding:4px;text-align:left;font-weight:bold">Em operação</td>';
+  ORD.forEach((d,oi)=>{ h+='<td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold">'+(closed.includes(d)?'—':cont[oi])+'</td>'; });
+  h+='</tr></tbody></table>'; return h;
+}
+function legalFooter(){ return '<p style="font-size:10px;margin-top:12px;color:#333">Conforme Portaria MTE 2.041/2026 (jornada de 42h e dois descansos semanais). Confira a CCT da categoria antes de aplicar.</p>'; }
+function buildFolhaAv(){
+  const e=cur(); const info=computeFolgas(e); const hoje=new Date().toLocaleDateString("pt-BR");
+  const rod=e.rodizio && info.autoIds.length>1; const semanas=rod?Math.min(info.autoIds.length,7):1;
+  const peak=(e.peak||[]).filter(d=>e.operating.includes(d));
+  let h='<div style="font-family:Arial,Helvetica,sans-serif;color:#000;padding:10px">';
+  h+='<h1 style="text-align:center;margin:0 0 4px;font-size:20px">Escala de Trabalho — Jornada de 42h</h1>';
+  if(e.empresa) h+='<p style="text-align:center;margin:0 0 2px;font-weight:bold;font-size:13px">'+escHtml(e.empresa)+'</p>';
+  h+='<p style="text-align:center;margin:0 0 12px;font-size:12px">Jornada '+(e.meta/60)+'h/semana · 2 folgas · '+hoje+'</p>';
+  for(let k=0;k<semanas;k++){
+    const fs=folgasSemana(e,info,k);
+    h+='<h3 style="margin:12px 0 4px;font-size:13px">'+(semanas>1?("Semana "+(k+1)):"Escala semanal")+'</h3>';
+    h+=gridHTMLPrint(e.funcionarios.length, i=>e.funcionarios[i].nome||("Funcionário "+(i+1)),
+        i=>{const f=e.funcionarios[i]; const sh=funcShift(e,f); const folga=fs[f.id];
+            return d=>info.closed.includes(d)?null:(folga.has(d)?"folga":(sh.entrada+"–"+sh.saida));},
+        info.closed, peak);
+  }
+  // modelos usados
+  h+='<h3 style="margin:14px 0 4px;font-size:12px">Horários</h3><p style="font-size:11px;margin:0">';
+  h+=e.funcionarios.map(f=>{const sh=funcShift(e,f);return escHtml(f.nome||"Func")+": "+sh.entrada+"–"+sh.saida+almocoTxt(+sh.intervalo||0);}).join(" · ");
+  h+='</p>'+legalFooter()+'</div>'; return h;
+}
+
+/* ---- eventos Avançado ---- */
+function recalcAv(){ save(); renderQuadro(); }
+// empresa fields
+["avEmpresa","avSetor","avCctObs"].forEach(id=>$(id).addEventListener("input",()=>{ const e=cur();
+  e.empresa=$("avEmpresa").value; e.setor=$("avSetor").value; e.cctObs=$("avCctObs").value; save(); renderSelEmpresa(); }));
+$("avMeta").addEventListener("change",()=>{cur().meta=+$("avMeta").value; recalcAv();});
+$("avAdNot").addEventListener("input",()=>{cur().adNot=+$("avAdNot").value; recalcAv();});
+$("avCCT").addEventListener("change",()=>{cur().temCCT=$("avCCT").checked; $("avCctWrap").classList.toggle("hide",!cur().temCCT); recalcAv();});
+$("avRodizio").addEventListener("change",()=>{cur().rodizio=$("avRodizio").checked; recalcAv();});
+$("avDias").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; const d=+b.dataset.d; const esc=cur();
+  if(esc.operating.includes(d)){ esc.operating=esc.operating.filter(x=>x!==d); esc.peak=(esc.peak||[]).filter(x=>x!==d); }
+  else esc.operating.push(d);
+  esc.operating.sort((a,b)=>a-b); save(); renderEmpresaCard(); renderFuncs(); renderQuadro(); });
+$("avPeak").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; const d=+b.dataset.d; const esc=cur();
+  if(!esc.operating.includes(d))return; // só dias de funcionamento
+  esc.peak=esc.peak||[]; if(esc.peak.includes(d)) esc.peak=esc.peak.filter(x=>x!==d); else esc.peak.push(d);
+  save(); renderEmpresaCard(); renderQuadro(); });
+
+// modelos
+$("btnAddModelo").addEventListener("click",()=>{ cur().modelos.push(novoModelo("Horário "+(cur().modelos.length+1))); save(); renderModelos(); renderFuncs(); renderQuadro(); });
+$("avModelos").addEventListener("input",e=>{ const t=e.target; const mid=t.dataset.mid; if(!mid)return;
+  const m=cur().modelos.find(x=>x.id===mid); if(!m)return; const f=t.dataset.f;
+  m[f]=(f==="intervalo")?(+t.value||0):t.value; save();
+  // atualiza só a jornada exibida + quadro (sem re-render para não perder foco)
+  const dur=shiftMin(m); const cell=t.closest(".item").querySelector(".field div[style]"); if(cell)cell.textContent=fmtDur(dur);
+  renderQuadro(); });
+$("avModelos").addEventListener("click",e=>{ const b=e.target.closest("[data-delmodelo]"); if(!b)return;
+  const id=b.dataset.delmodelo; const esc=cur(); if(esc.modelos.length<=1){alert("Mantenha ao menos um modelo.");return;}
+  esc.modelos=esc.modelos.filter(m=>m.id!==id);
+  esc.funcionarios.forEach(f=>{ if(f.modeloId===id) f.modeloId="custom"; });
+  save(); renderModelos(); renderFuncs(); renderQuadro(); });
+
+// funcionarios
+$("btnAddFunc").addEventListener("click",()=>{ const esc=cur(); const f=novoFunc(esc.modelos[0]?esc.modelos[0].id:"custom"); f.nome="Funcionário "+(esc.funcionarios.length+1); esc.funcionarios.push(f); save(); renderFuncs(); renderQuadro(); });
+$("avFuncs").addEventListener("input",e=>{ const t=e.target; const fid=t.dataset.fid; if(!fid)return;
+  const f=cur().funcionarios.find(x=>x.id===fid); if(!f)return; const k=t.dataset.f;
+  if(k==="nome"){ f.nome=t.value; const hd=t.closest(".item").querySelector(".hd .t"); if(hd)hd.textContent=f.nome||"Funcionário"; }
+  else if(k==="funcao") f.funcao=t.value;
+  else if(k==="salario") f.salario=+t.value||0;
+  else if(k==="c_entrada") f.custom.entrada=t.value;
+  else if(k==="c_saida") f.custom.saida=t.value;
+  else if(k==="c_intervalo") f.custom.intervalo=+t.value||0;
+  save(); renderQuadro(); });
+$("avFuncs").addEventListener("change",e=>{ const t=e.target; const fid=t.dataset.fid; if(!fid)return;
+  const f=cur().funcionarios.find(x=>x.id===fid); if(!f)return; const k=t.dataset.f;
+  if(k==="modeloId"){ f.modeloId=t.value; save(); renderFuncs(); renderQuadro(); }
+  else if(k==="divAtual"){ f.divAtual=+t.value; save(); renderQuadro(); }
+  else if(k==="folgaAuto"){ f.folgaAuto=(t.value==="auto"); if(!f.folgaAuto && !f.folgas.length){ /* sugere dias automáticos iniciais */ } save(); renderFuncs(); renderQuadro(); }
+});
+$("avFuncs").addEventListener("click",e=>{
+  const del=e.target.closest("[data-delfunc]");
+  if(del){ const esc=cur(); if(esc.funcionarios.length<=1){alert("Mantenha ao menos um funcionário.");return;}
+    esc.funcionarios=esc.funcionarios.filter(x=>x.id!==del.dataset.delfunc); save(); renderFuncs(); renderQuadro(); return; }
+  const fb=e.target.closest("[data-folgafid]");
+  if(fb){ const f=cur().funcionarios.find(x=>x.id===fb.dataset.folgafid); if(!f)return; const d=+fb.dataset.d;
+    f.folgas=f.folgas||[]; if(f.folgas.includes(d)) f.folgas=f.folgas.filter(x=>x!==d); else f.folgas.push(d);
+    fb.classList.toggle("on"); save(); renderQuadro(); }
+});
+
+// toolbar
+$("selEmpresa").addEventListener("change",()=>{ store.sel=$("selEmpresa").value; save(); renderAvancado(); });
+$("btnNova").addEventListener("click",()=>{ const e=novaEmpresa(); e.empresa="Nova empresa"; store.empresas.push(e); store.sel=e.id; save(); renderAvancado(); });
+$("btnDup").addEventListener("click",()=>{ const c=JSON.parse(JSON.stringify(cur())); c.id=uid(); c.empresa=(c.empresa||"empresa")+" (cópia)"; store.empresas.push(c); store.sel=c.id; save(); renderAvancado(); });
+$("btnDel").addEventListener("click",()=>{ if(store.empresas.length<=1){alert("Mantenha ao menos uma empresa.");return;} if(!confirm("Excluir esta empresa?"))return; store.empresas=store.empresas.filter(x=>x.id!==store.sel); store.sel=store.empresas[0].id; save(); renderAvancado(); });
+$("btnPrintAv").addEventListener("click",()=>{ $("folhaPrint").innerHTML=buildFolhaAv(); setTimeout(()=>window.print(),50); });
+let _downloads=null; if(window.claude&&window.claude.use){ claude.use("downloads").then(d=>{_downloads=d;}).catch(()=>{}); }
+$("btnExport").addEventListener("click",async()=>{ const data=JSON.stringify(store,null,2);
+  try{ const dl=_downloads||(window.claude&&window.claude.use?await claude.use("downloads"):null); if(dl){ await dl.save({filename:"escalas-42h.json",data}); return; } }catch(e){}
+  try{ const blob=new Blob([data],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="escalas-42h.json"; a.click(); URL.revokeObjectURL(a.href); }catch(e){ alert("Não foi possível baixar o backup."); } });
+$("btnImport").addEventListener("click",()=>$("fileImport").click());
+$("fileImport").addEventListener("change",ev=>{ const f=ev.target.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.empresas&&d.empresas.length){ store=d; if(!store.sel)store.sel=store.empresas[0].id; save(); renderAvancado(); } else alert("Arquivo inválido."); }catch(e){ alert("Arquivo inválido."); } };
+  r.readAsText(f); ev.target.value=""; });
+
+/* ===== Simples eventos ===== */
+document.querySelectorAll("#sFunc button").forEach(b=>b.addEventListener("click",()=>{
+  sOp=b.dataset.op; document.querySelectorAll("#sFunc button").forEach(x=>x.classList.toggle("on",x===b)); renderPeakChips(); renderSimples(); }));
+["sEmpresa","sEnt","sInt","sMeta","sN","sNomes"].forEach(id=>{ const el=$(id); if(el) el.addEventListener("input",renderSimples); });
+$("sRodizio").addEventListener("change",renderSimples);
+$("sPrint").addEventListener("click",()=>{ $("folhaPrint").innerHTML=buildFolhaSimples(); setTimeout(()=>window.print(),50); });
+
+/* ===== view toggle ===== */
 function setView(v){ const s=v==="simples";
   $("simples").classList.toggle("hide",!s); $("avancado").classList.toggle("hide",s);
-  $("viewSimplesBtn").className=s?"p":"s"; $("viewAvancadoBtn").className=s?"s":"p";
-  if(s){ renderPeakChips(); renderSimples(); }
+  $("viewSimplesBtn").className=s?"on":""; $("viewAvancadoBtn").className=s?"":"on";
+  if(s){ renderPeakChips(); renderSimples(); } else renderAvancado();
 }
 $("viewSimplesBtn").addEventListener("click",()=>setView("simples"));
 $("viewAvancadoBtn").addEventListener("click",()=>setView("avancado"));
 
-load(); renderAll(); setModo("escala"); setView("simples");
+load(); setView("simples");
 </script>
 
 <script>

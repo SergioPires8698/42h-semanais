@@ -1,6 +1,6 @@
 {
-  "name": "Conversor de Escalas — Jornada de 42h",
-  "short_name": "Escala 42h",
+  "name": "EscalaCerta — Jornada de 42h",
+  "short_name": "EscalaCerta",
   "description": "Monta a nova escala de trabalho de 42 horas com 2 folgas, conforme a Portaria MTE 2.041/2026.",
   "start_url": "./index.html",
   "scope": "./",
