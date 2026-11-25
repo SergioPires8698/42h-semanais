@@ -1,5 +1,5 @@
 /* Service worker — cache do app para funcionamento offline */
-const CACHE = "escala42-v5";
+const CACHE = "escala42-v6";
 const ASSETS = [
   "./",
   "./index.html",

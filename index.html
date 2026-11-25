@@ -186,6 +186,7 @@
         <div class="field"><label>Setor / CNAE</label><input type="text" id="avSetor" placeholder="Ex.: 4744-0/99"></div>
         <div class="field"><label>Jornada</label><select id="avMeta"><option value="2520">42h (16/12/2026)</option><option value="2400">40h (16/12/2027)</option></select></div>
         <div class="field"><label>Adicional noturno (%)</label><input type="number" id="avAdNot" value="20" min="0"></div>
+        <div class="field"><label>Adicional hora extra (%)</label><input type="number" id="avPctExtra" value="50" min="0"></div>
       </div>
       <div style="margin-top:12px">
         <label style="font-size:.76rem;color:var(--muted);font-weight:600">Dias de funcionamento</label>
@@ -228,9 +229,9 @@
     </div>
 
     <div class="card">
-      <h2>Folha — valor da hora</h2>
+      <h2>Folha — valores a pagar</h2>
       <div class="tbl-scroll" id="avFolha"></div>
-      <p class="note">Divisor 210 (42h) ou 200 (40h). Salário mensal não muda; o valor da hora sobe pela queda do divisor. Hora noturna reduzida (52min30s = 1h) considerada no adicional.</p>
+      <p class="note">Hora pelo divisor 210 (42h) ou 200 (40h). <b>Extras</b> = horas que passam da jornada semanal, com o adicional informado (padrão 50%). Valores mensais estimados (semana × 4,33), sem reflexos de DSR. Hora noturna reduzida (52min30s = 1h). Confira sempre a CCT.</p>
     </div>
   </div>
 
@@ -352,11 +353,11 @@ let store={empresas:[],sel:null};
 let uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 function novoModelo(nome,ent,sai,intv){ return {id:uid(),nome:nome||"Novo horário",entrada:ent||"08:00",saida:sai||"17:24",intervalo:intv==null?60:intv}; }
-function novoFunc(modeloId){ return {id:uid(),nome:"",funcao:"",salario:1800,divAtual:220,modeloId:modeloId||"custom",custom:{entrada:"08:00",saida:"17:24",intervalo:60},folgaAuto:true,folgas:[],meioPeriodo:false}; }
+function novoFunc(modeloId){ return {id:uid(),nome:"",funcao:"",salario:1800,divAtual:220,modeloId:modeloId||"custom",custom:{entrada:"08:00",saida:"17:24",intervalo:60},folgaAuto:true,folgas:[],meioPeriodo:false,folgaDomingo:false}; }
 function novaEmpresa(){
   const m=novoModelo("Comercial","08:00","17:24",60);
   const f=novoFunc(m.id); f.nome="Funcionário 1";
-  return {id:uid(),empresa:"",setor:"",temCCT:false,cctObs:"",meta:2520,adNot:20,ajustar:true,
+  return {id:uid(),empresa:"",setor:"",temCCT:false,cctObs:"",meta:2520,adNot:20,pctExtra:50,ajustar:true,
     operating:[1,2,3,4,5],peak:[],rodizio:false,modelos:[m],funcionarios:[f]};
 }
 function load(){ try{const r=localStorage.getItem(KEY); if(r)store=JSON.parse(r);}catch(e){}
@@ -386,19 +387,22 @@ function funcEffShift(esc,f,workDays){
 function computeFolgas(esc){
   const operating=esc.operating, peak=(esc.peak||[]).filter(d=>operating.includes(d));
   const closed=[0,1,2,3,4,5,6].filter(d=>!operating.includes(d));
-  const avail=operating.filter(d=>!peak.includes(d));
-  const need=Math.max(0,2-closed.length);
+  const sundayOp=operating.includes(0); // domingo é controlado por "folga aos domingos", nunca pela distribuição automática
+  const avail=operating.filter(d=>!peak.includes(d) && d!==0);
+  const remaining=Math.max(0,2-closed.length);
   const count={}; avail.forEach(d=>count[d]=0);
   const base={}; const autoIds=[];
   esc.funcionarios.forEach(f=>{ if(!f.folgaAuto){ const s=new Set(closed);
     (f.folgas||[]).forEach(d=>{ if(operating.includes(d)){ s.add(d); if(avail.includes(d)) count[d]=(count[d]||0)+1; } });
     base[f.id]=s; } });
   esc.funcionarios.forEach(f=>{ if(f.folgaAuto){ autoIds.push(f.id); const s=new Set(closed);
+    let need=remaining;
+    if(sundayOp && f.folgaDomingo){ s.add(0); need=Math.max(0,need-1); }
     for(let k=0;k<need;k++){ let best=null,bc=Infinity;
       for(const d of avail){ if(s.has(d))continue; if(count[d]<bc){bc=count[d];best=d;} }
       if(best===null)break; s.add(best); count[best]=(count[best]||0)+1; }
     base[f.id]=s; } });
-  return {base,closed,avail,need,autoIds};
+  return {base,closed,avail,need:remaining,autoIds};
 }
 function folgasSemana(esc,info,k){
   const map={}; const rod=esc.rodizio && info.autoIds.length>1;
@@ -425,7 +429,7 @@ function renderDayChips(containerId, selected, closedForPeak){
 }
 function renderEmpresaCard(){
   const e=cur();
-  $("avEmpresa").value=e.empresa; $("avSetor").value=e.setor; $("avMeta").value=e.meta; $("avAdNot").value=e.adNot;
+  $("avEmpresa").value=e.empresa; $("avSetor").value=e.setor; $("avMeta").value=e.meta; $("avAdNot").value=e.adNot; $("avPctExtra").value=e.pctExtra!=null?e.pctExtra:50;
   $("avCCT").checked=e.temCCT; $("avCctObs").value=e.cctObs; $("avCctWrap").classList.toggle("hide",!e.temCCT);
   $("avAjustar").checked=e.ajustar!==false; $("avRodizio").checked=e.rodizio;
   renderDayChips("avDias", e.operating, null);
@@ -473,6 +477,7 @@ function renderFuncs(){
         <div class="field"><label>Folgas</label><select data-fid="${f.id}" data-f="folgaAuto"><option value="auto">Automáticas</option><option value="manual">Escolher dias</option></select></div>
       </div>`;
     html+=`<label class="inline-chk" style="margin-top:8px"><input type="checkbox" data-fid="${f.id}" data-f="meioPeriodo" ${f.meioPeriodo?"checked":""}> Meio período (mantém o horário cadastrado, sem ajustar para a jornada cheia)</label>`;
+    if(e.operating.includes(0)) html+=`<label class="inline-chk" style="margin-top:8px"><input type="checkbox" data-fid="${f.id}" data-f="folgaDomingo" ${f.folgaDomingo?"checked":""}> Folga aos domingos (não trabalha no domingo)</label>`;
     html+=`<div class="manualWrap" data-fid="${f.id}" style="margin-top:8px"></div>`;
     div.innerHTML=html;
     c.appendChild(div);
@@ -547,15 +552,24 @@ function renderConformidade(e,info){
   });
 }
 function renderFolhaAv(e,info){
-  const div=e.meta===2520?210:200;
-  let h='<table style="min-width:520px"><thead><tr><th>Funcionário</th><th>Salário</th><th>Hora atual</th><th>Hora nova (÷'+div+')</th><th>Extra 50%</th><th>Extra 100%</th><th>Noturno/sem</th></tr></thead><tbody>';
+  const div=e.meta===2520?210:200; const semMes=4.3333; const pct=(e.pctExtra!=null?e.pctExtra:50);
+  let h='<table style="min-width:680px"><thead><tr><th>Funcionário</th><th>Salário</th><th>Hora (÷'+div+')</th><th>Extras/sem</th><th>Extras (mês)</th><th>Noturno (mês)</th><th>Total a pagar (mês)</th></tr></thead><tbody>';
   const fs0=folgasSemana(e,info,0);
   e.funcionarios.forEach(f=>{
     const folga=fs0[f.id]; const wd=funcWorkDays(e,folga); const sh=funcEffShift(e,f,wd); const s=+f.salario||0;
-    const dA=+f.divAtual||220; const hA=s/dA, hN=s/div;
-    let dias=0,notMin=0; for(const d of e.operating){ if(!folga.has(d)){ dias++; notMin+=nightMinShift(sh); } }
-    const horasNot=notMin/52.5; const adVal=horasNot*hN*((+e.adNot||0)/100);
-    h+='<tr><td>'+escHtml(f.nome||"Funcionário")+'</td><td>'+(s?brl(s):"—")+'</td><td>'+(s?brl(hA):"—")+'</td><td class="on">'+(s?brl(hN):"—")+'</td><td>'+(s?brl(hN*1.5):"—")+'</td><td>'+(s?brl(hN*2):"—")+'</td><td>'+(s&&notMin?brl(adVal):"—")+'</td></tr>';
+    const hN=s/div; const dur=shiftMin(sh); const semanal=dur*wd;
+    const extrasH=Math.max(0,(semanal-e.meta)/60);
+    const extrasMes=extrasH*semMes*hN*(1+pct/100);
+    let notMin=0; for(const d of e.operating) if(!folga.has(d)) notMin+=nightMinShift(sh);
+    const notMes=(notMin/52.5)*semMes*hN*((+e.adNot||0)/100);
+    const total=s+extrasMes+notMes;
+    h+='<tr><td>'+escHtml(f.nome||"Funcionário")+'</td>'
+      +'<td>'+(s?brl(s):"—")+'</td>'
+      +'<td>'+(s?brl(hN):"—")+'</td>'
+      +'<td>'+(extrasH>0?extrasH.toLocaleString("pt-BR",{maximumFractionDigits:1})+"h":"—")+'</td>'
+      +'<td class="'+(extrasMes>0?"on":"")+'">'+(s&&extrasMes>0?brl(extrasMes):"—")+'</td>'
+      +'<td>'+(s&&notMin?brl(notMes):"—")+'</td>'
+      +'<td class="on">'+(s?brl(total):"—")+'</td></tr>';
   });
   h+='</tbody></table>';
   $("avFolha").innerHTML=h;
@@ -600,7 +614,25 @@ function buildFolhaAv(){
   const fs0=folgasSemana(e,info,0);
   h+='<h3 style="margin:14px 0 4px;font-size:12px">Horários</h3><p style="font-size:11px;margin:0">';
   h+=e.funcionarios.map(f=>{const folga=fs0[f.id]; const wd=funcWorkDays(e,folga); const sh=funcEffShift(e,f,wd);return escHtml(f.nome||"Func")+": "+sh.entrada+"–"+sh.saida+almocoTxt(+sh.intervalo||0);}).join(" · ");
-  h+='</p>'+legalFooter()+'</div>'; return h;
+  h+='</p>';
+  // valores a pagar (mês, estimado)
+  const div=e.meta===2520?210:200; const semMes=4.3333; const pct=(e.pctExtra!=null?e.pctExtra:50);
+  h+='<h3 style="margin:14px 0 4px;font-size:12px">Valores a pagar (mês, estimado)</h3><p style="font-size:11px;margin:0;line-height:1.6">';
+  h+=e.funcionarios.map(f=>{
+    const folga=fs0[f.id]; const wd=funcWorkDays(e,folga); const sh=funcEffShift(e,f,wd); const s=+f.salario||0; const hN=s/div;
+    const dur=shiftMin(sh); const semanal=dur*wd; const extrasH=Math.max(0,(semanal-e.meta)/60);
+    const extrasMes=extrasH*semMes*hN*(1+pct/100);
+    let notMin=0; for(const d of e.operating) if(!folga.has(d)) notMin+=nightMinShift(sh);
+    const notMes=(notMin/52.5)*semMes*hN*((+e.adNot||0)/100);
+    const total=s+extrasMes+notMes;
+    let p='<b>'+escHtml(f.nome||"Func")+'</b>: salário '+brl(s);
+    if(extrasMes>0) p+=' + extras '+brl(extrasMes)+' ('+extrasH.toLocaleString("pt-BR",{maximumFractionDigits:1})+'h × '+pct+'%)';
+    if(notMin>0) p+=' + noturno '+brl(notMes);
+    p+=' = <b>total '+brl(total)+'</b>';
+    return p;
+  }).join('<br>');
+  h+='</p><p style="font-size:9px;color:#555;margin:6px 0 0">Extras = horas que passam de '+(e.meta/60)+'h/semana. Valores mensais estimados (semana × 4,33), sem reflexos de DSR. Confira a CCT.</p>';
+  h+=legalFooter()+'</div>'; return h;
 }
 
 /* ---- eventos Avançado ---- */
@@ -610,6 +642,7 @@ function recalcAv(){ save(); renderQuadro(); }
   e.empresa=$("avEmpresa").value; e.setor=$("avSetor").value; e.cctObs=$("avCctObs").value; save(); renderSelEmpresa(); }));
 $("avMeta").addEventListener("change",()=>{cur().meta=+$("avMeta").value; recalcAv();});
 $("avAdNot").addEventListener("input",()=>{cur().adNot=+$("avAdNot").value; recalcAv();});
+$("avPctExtra").addEventListener("input",()=>{cur().pctExtra=+$("avPctExtra").value; recalcAv();});
 $("avCCT").addEventListener("change",()=>{cur().temCCT=$("avCCT").checked; $("avCctWrap").classList.toggle("hide",!cur().temCCT); recalcAv();});
 $("avAjustar").addEventListener("change",()=>{cur().ajustar=$("avAjustar").checked; recalcAv();});
 $("avRodizio").addEventListener("change",()=>{cur().rodizio=$("avRodizio").checked; recalcAv();});
@@ -653,6 +686,7 @@ $("avFuncs").addEventListener("change",e=>{ const t=e.target; const fid=t.datase
   else if(k==="divAtual"){ f.divAtual=+t.value; save(); renderQuadro(); }
   else if(k==="folgaAuto"){ f.folgaAuto=(t.value==="auto"); if(!f.folgaAuto && !f.folgas.length){ /* sugere dias automáticos iniciais */ } save(); renderFuncs(); renderQuadro(); }
   else if(k==="meioPeriodo"){ f.meioPeriodo=t.checked; save(); renderQuadro(); }
+  else if(k==="folgaDomingo"){ f.folgaDomingo=t.checked; save(); renderQuadro(); }
 });
 $("avFuncs").addEventListener("click",e=>{
   const del=e.target.closest("[data-delfunc]");
