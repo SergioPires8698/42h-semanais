@@ -129,45 +129,7 @@
     <span class="topchip">Conforme Portaria MTE 2.041/2026</span>
   </header>
 
-  <div class="tabs noprint" style="margin-bottom:16px">
-    <button id="viewSimplesBtn" class="on">Simples</button>
-    <button id="viewAvancadoBtn">Avançado</button>
-  </div>
-
-  <!-- ================= SIMPLES ================= -->
-  <div id="simples">
-    <div class="card">
-      <h2>Monte a nova escala em 3 passos</h2>
-      <div class="field" style="margin-bottom:14px;margin-top:8px"><label>Empresa (opcional)</label><input type="text" id="sEmpresa" placeholder="Nome do cliente"></div>
-      <label style="font-size:.78rem;color:var(--muted);font-weight:600">1. Quando a empresa funciona?</label>
-      <div class="seg" id="sFunc" style="margin:6px 0 0"><button data-op="segsex" class="on">Seg a Sex</button><button data-op="segsab">Seg a Sáb</button><button data-op="todos">Todos os dias</button></div>
-      <div style="margin-top:16px">
-        <label style="font-size:.78rem;color:var(--muted);font-weight:600">Dias de maior movimento (todos trabalham, sem folga)</label>
-        <div class="seg" id="sPeakChips" style="margin:6px 0 0;flex-wrap:wrap"></div>
-      </div>
-      <label class="inline-chk" style="margin-top:14px"><input type="checkbox" id="sRodizio"> Alternar as folgas a cada semana (rodízio)</label>
-      <div class="row" style="margin-top:16px">
-        <div class="field"><label>2. Entrada</label><input type="time" id="sEnt" value="08:00"></div>
-        <div class="field"><label>Almoço</label><select id="sInt"><option value="60">1 hora</option><option value="90">1h30</option><option value="30">30 min</option><option value="0">Sem almoço</option></select></div>
-        <div class="field"><label>Jornada</label><select id="sMeta"><option value="2520">42h</option><option value="2400">40h</option></select></div>
-      </div>
-      <div class="row" style="margin-top:16px">
-        <div class="field"><label>3. Nº de funcionários</label><input type="number" id="sN" value="1" min="1"></div>
-        <div class="field" style="flex:1 1 240px"><label>Nomes (opcional, um por linha)</label><textarea id="sNomes" rows="2" placeholder="João&#10;Maria" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:.9rem;resize:vertical;width:100%"></textarea></div>
-      </div>
-      <p class="note">Precisa de horários diferentes por funcionário ou situações mais complexas? Use a aba <b>Avançado</b>.</p>
-    </div>
-    <div class="card">
-      <div class="big-sum" id="sResumo">—</div>
-      <div class="note" id="sHorario" style="margin-top:2px"></div>
-      <div id="sStrips" style="margin-top:14px"></div>
-      <div class="alerts" id="sAlerts" style="margin-top:8px"></div>
-      <div style="margin-top:14px"><button class="p" id="sPrint">Baixar escala em PDF</button></div>
-    </div>
-  </div>
-
-  <!-- ================= AVANÇADO ================= -->
-  <div id="avancado" class="hide">
+  <div id="avancado">
     <div class="toolbar noprint">
       <div class="field grow"><label>Empresa</label><select id="selEmpresa"></select></div>
       <button class="s" id="btnNova">+ Nova</button>
@@ -247,7 +209,6 @@
 /* ===== dias ===== */
 const RDIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"]; // 0..6
 const ORD=[1,2,3,4,5,6,0]; const ORDN=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
-const SMAP={segsex:[1,2,3,4,5],segsab:[1,2,3,4,5,6],todos:[0,1,2,3,4,5,6]};
 
 /* ===== helpers ===== */
 const $=id=>document.getElementById(id);
@@ -264,86 +225,6 @@ function shiftMin(sh){ return workedMin({folga:false,entrada:sh.entrada,saida:sh
 function nightMinShift(sh){ let e=toMin(sh.entrada),s=toMin(sh.saida); if(e==null||s==null)return 0; if(s<=e)s+=1440; let c=0; for(let m=e;m<s;m++){const x=((m%1440)+1440)%1440; if(x>=1320||x<300)c++;} return c; }
 function almocoTxt(intv){ return intv?(" (almoço de "+(intv>=60?(intv%60?Math.floor(intv/60)+"h"+(intv%60):(intv/60)+"h"):intv+" min")+")"):" (sem almoço)"; }
 
-/* ============================================================
-   SIMPLES
-   ============================================================ */
-let sOp="segsex"; let sPeak=new Set();
-function buildAssign(cfg){
-  const {operating,closed,need,N,peak}=cfg;
-  const avail=operating.filter(d=>!peak.includes(d));
-  const assign=Array.from({length:N},()=>new Set());
-  if(need>0 && avail.length){ const count={}; avail.forEach(d=>count[d]=0);
-    for(let e=0;e<N;e++){ for(let s=0;s<need;s++){ let best=null,bc=Infinity;
-      for(const d of avail){ if(assign[e].has(d))continue; if(count[d]<bc){bc=count[d];best=d;} }
-      if(best===null)break; assign[e].add(best); count[best]++; } } }
-  const short=assign.some(s=>s.size<need);
-  return {assign,avail,short};
-}
-function folgaSet(e,k,cfg,assign,rodizio){
-  const idx=rodizio?(((e+k)%cfg.N)+cfg.N)%cfg.N:e;
-  const s=new Set(cfg.closed); (assign[idx]||new Set()).forEach(d=>s.add(d)); return s;
-}
-function renderPeakChips(){
-  const operating=SMAP[sOp]||SMAP.segsex; const c=$("sPeakChips"); if(!c)return; c.innerHTML="";
-  ORD.forEach((d,oi)=>{ if(!operating.includes(d))return;
-    const b=document.createElement("button"); b.type="button"; b.textContent=ORDN[oi]; b.className=sPeak.has(d)?"on":"";
-    b.addEventListener("click",()=>{ if(sPeak.has(d))sPeak.delete(d); else sPeak.add(d); b.classList.toggle("on"); renderSimples(); });
-    c.appendChild(b); });
-}
-function simplesConfig(){
-  const operating=SMAP[sOp]||SMAP.segsex;
-  const closed=[0,1,2,3,4,5,6].filter(d=>!operating.includes(d));
-  const need=Math.max(0,2-closed.length);
-  const ent=$("sEnt").value||"08:00"; const intv=+$("sInt").value||0; const meta=+$("sMeta").value||2520;
-  const nomesRaw=$("sNomes").value.trim(); const nomes=nomesRaw?nomesRaw.split(/\n+/).map(s=>s.trim()).filter(Boolean):null;
-  const N=nomes?nomes.length:Math.max(1,+$("sN").value||1);
-  const peak=[...sPeak].filter(d=>operating.includes(d));
-  const rodizio=$("sRodizio")?$("sRodizio").checked:false;
-  const workPerEmp=operating.length-need; const perDay=workPerEmp>0?Math.round(meta/workPerEmp):0;
-  const saida=toHHMM(toMin(ent)+perDay+intv);
-  const cfg={operating,closed,need,N,peak}; const a=buildAssign(cfg);
-  return {operating,closed,need,ent,intv,meta,nomes,N,workPerEmp,perDay,saida,peak,rodizio,cfg,assign:a.assign,short:a.short};
-}
-function renderSimples(){
-  const c=simplesConfig();
-  $("sResumo").textContent="Nova escala: "+fmtDur(c.perDay)+" por dia · "+(c.meta/60)+"h por semana · 2 folgas";
-  $("sHorario").textContent="Horário: "+c.ent+" às "+c.saida+almocoTxt(c.intv);
-  const nome=i=>c.nomes?c.nomes[i]:("Funcionário "+(i+1));
-  const wrap=$("sStrips"); wrap.innerHTML=""; const showN=Math.min(c.N,8);
-  for(let i=0;i<showN;i++){
-    const f=folgaSet(i,0,c.cfg,c.assign,c.rodizio);
-    let html='<div class="emp"><div class="nm">'+escHtml(nome(i))+'</div><div class="strip">';
-    ORD.forEach((d,oi)=>{ const off=c.closed.includes(d)||f.has(d);
-      html+='<div class="day '+(off?"off":"work")+'"><div class="dn">'+ORDN[oi]+'</div>'+(off?"Folga":(c.ent+"–"+c.saida))+'</div>'; });
-    html+='</div></div>'; wrap.insertAdjacentHTML("beforeend",html);
-  }
-  const al=$("sAlerts"); al.innerHTML="";
-  if(c.short) addAlert(al,"e","Não dá para garantir 2 folgas: há dias de movimento demais (ou poucos dias). Desmarque algum dia de movimento.");
-  if(c.peak.length) addAlert(al,"g","Dias de movimento (todos trabalham): "+c.peak.map(d=>ORDN[ORD.indexOf(d)]).join(", ")+".");
-  if(c.rodizio && c.need>0 && c.N>1) addAlert(al,"g","As folgas giram a cada semana — o PDF traz o quadro completo.");
-  else if(c.need>0 && c.N>1) addAlert(al,"g","Folgas fixas (as mesmas toda semana). Marque \"alternar\" se quiser rodízio.");
-  const semCob=c.rodizio?7:1; let pior=Infinity;
-  for(let k=0;k<semCob;k++){ for(const d of c.operating){ let t=0; for(let i=0;i<c.N;i++){ if(!folgaSet(i,k,c.cfg,c.assign,c.rodizio).has(d)) t++; } if(t<pior)pior=t; } }
-  if(c.operating.length){
-    if(pior<1) addAlert(al,"e","Com "+c.N+" funcionário(s) a empresa fica sem ninguém em alguns dias. Adicione mais pessoas.");
-    else if(c.N>1) addAlert(al,"g","Sempre há pelo menos "+pior+" pessoa(s) trabalhando em cada dia.");
-  }
-  if(c.N>8) addAlert(al,"g","Na tela aparecem os 8 primeiros; o PDF inclui todos os "+c.N+".");
-}
-function buildFolhaSimples(){
-  const c=simplesConfig(); const nome=i=>c.nomes?c.nomes[i]:("Funcionário "+(i+1));
-  const semanas=c.rodizio?(c.need===0?1:(c.need===2?7:c.operating.length)):1;
-  const emp=$("sEmpresa").value||""; const hoje=new Date().toLocaleDateString("pt-BR");
-  let h='<div style="font-family:Arial,Helvetica,sans-serif;color:#000;padding:10px">';
-  h+='<h1 style="text-align:center;margin:0 0 4px;font-size:20px">Escala de Trabalho — Jornada de 42h</h1>';
-  if(emp) h+='<p style="text-align:center;margin:0 0 2px;font-weight:bold;font-size:13px">'+escHtml(emp)+'</p>';
-  h+='<p style="text-align:center;margin:0 0 12px;font-size:12px">'+fmtDur(c.perDay)+'/dia · '+(c.meta/60)+'h/semana · '+c.ent+'–'+c.saida+almocoTxt(c.intv)+' · 2 folgas · '+hoje+'</p>';
-  for(let k=0;k<semanas;k++){
-    h+='<h3 style="margin:12px 0 4px;font-size:13px">'+(semanas>1?("Semana "+(k+1)):"Escala semanal")+'</h3>';
-    h+=gridHTMLPrint(c.N,nome,(i)=>{const f=folgaSet(i,k,c.cfg,c.assign,c.rodizio);return (d)=>c.closed.includes(d)?null:(f.has(d)?"folga":(c.ent+"–"+c.saida));},c.closed,[]);
-  }
-  h+=legalFooter()+'</div>'; return h;
-}
 
 /* ============================================================
    AVANÇADO — Empresa → Funcionários
@@ -353,7 +234,7 @@ let store={empresas:[],sel:null};
 let uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 function novoModelo(nome,ent,sai,intv){ return {id:uid(),nome:nome||"Novo horário",entrada:ent||"08:00",saida:sai||"17:24",intervalo:intv==null?60:intv}; }
-function novoFunc(modeloId){ return {id:uid(),nome:"",funcao:"",salario:1800,divAtual:220,modeloId:modeloId||"custom",custom:{entrada:"08:00",saida:"17:24",intervalo:60},folgaAuto:true,folgas:[],meioPeriodo:false,folgaDomingo:false}; }
+function novoFunc(modeloId){ return {id:uid(),nome:"",funcao:"",salario:1800,divAtual:220,modeloId:modeloId||"custom",custom:{entrada:"08:00",saida:"17:24",intervalo:60},folgaAuto:true,folgas:[],meioPeriodo:false,folgaDomingo:false,sexo:"M"}; }
 function novaEmpresa(){
   const m=novoModelo("Comercial","08:00","17:24",60);
   const f=novoFunc(m.id); f.nome="Funcionário 1";
@@ -384,34 +265,52 @@ function funcEffShift(esc,f,workDays){
   return {entrada:sh.entrada,saida:sh.saida,intervalo:sh.intervalo,adj:false};
 }
 // folgas base (semana 0) por funcionário: manuais primeiro, automáticas equilibrando movimento/cobertura
+// sexo define o rodízio de domingo: mulher folga 1 domingo a cada 2 semanas (CLT 386); homem a cada 3 (Lei 10.101/2000)
+function diasRodizioDomingo(sexo){ return sexo==="F"?2:3; }
 function computeFolgas(esc){
-  const operating=esc.operating, peak=(esc.peak||[]).filter(d=>operating.includes(d));
+  const operating=esc.operating;
+  const peak=(esc.peak||[]).filter(d=>operating.includes(d));
   const closed=[0,1,2,3,4,5,6].filter(d=>!operating.includes(d));
-  const sundayOp=operating.includes(0); // domingo é controlado por "folga aos domingos", nunca pela distribuição automática
-  const avail=operating.filter(d=>!peak.includes(d) && d!==0);
-  const remaining=Math.max(0,2-closed.length);
-  const count={}; avail.forEach(d=>count[d]=0);
-  const base={}; const autoIds=[];
-  esc.funcionarios.forEach(f=>{ if(!f.folgaAuto){ const s=new Set(closed);
-    (f.folgas||[]).forEach(d=>{ if(operating.includes(d)){ s.add(d); if(avail.includes(d)) count[d]=(count[d]||0)+1; } });
-    base[f.id]=s; } });
-  esc.funcionarios.forEach(f=>{ if(f.folgaAuto){ autoIds.push(f.id); const s=new Set(closed);
-    let need=remaining;
-    if(sundayOp && f.folgaDomingo){ s.add(0); need=Math.max(0,need-1); }
-    for(let k=0;k<need;k++){ let best=null,bc=Infinity;
-      for(const d of avail){ if(s.has(d))continue; if(count[d]<bc){bc=count[d];best=d;} }
-      if(best===null)break; s.add(best); count[best]=(count[best]||0)+1; }
-    base[f.id]=s; } });
-  return {base,closed,avail,need:remaining,autoIds};
+  const sundayOp=operating.includes(0);
+  const avail=operating.filter(d=>!peak.includes(d) && d!==0); // candidatos de folga nos dias de semana
+  const extra=Math.max(0,2-closed.length);
+  const autoIds=esc.funcionarios.filter(f=>f.folgaAuto).map(f=>f.id);
+  // quem trabalha aos domingos (auto e sem "folga sempre no domingo") entra no rodízio dominical, escalonado
+  const sunWorkers=esc.funcionarios.filter(f=>sundayOp && f.folgaAuto && !f.folgaDomingo);
+  const offset={}; sunWorkers.forEach((f,i)=>offset[f.id]=i);
+  // nº de semanas a exibir (ciclo): rodízio de domingo (2 p/ mulher, 3 p/ homem, 6 se os dois) e/ou rodízio de folga
+  let cycle=1;
+  if(sunWorkers.length){ const hasF=sunWorkers.some(f=>f.sexo==="F"); const hasM=sunWorkers.some(f=>f.sexo!=="F"); cycle=(hasF&&hasM)?6:(hasF?2:3); }
+  if(esc.rodizio && autoIds.length>1) cycle=Math.max(cycle,Math.min(autoIds.length,6));
+  cycle=Math.min(cycle,8);
+  return {operating,peak,closed,sundayOp,avail,extra,offset,autoIds,cycle,nSunWorkers:sunWorkers.length};
 }
 function folgasSemana(esc,info,k){
-  const map={}; const rod=esc.rodizio && info.autoIds.length>1;
-  esc.funcionarios.forEach(f=>{
-    if(!f.folgaAuto || !rod){ map[f.id]=info.base[f.id]; }
-    else { const i=info.autoIds.indexOf(f.id); const src=info.autoIds[((i+k)%info.autoIds.length+info.autoIds.length)%info.autoIds.length]; map[f.id]=info.base[src]; }
+  const map={}; const count={}; info.avail.forEach(d=>count[d]=0);
+  // manuais primeiro (alimentam a contagem de cobertura)
+  esc.funcionarios.forEach(f=>{ if(!f.folgaAuto){ const s=new Set(info.closed);
+    (f.folgas||[]).forEach(d=>{ if(info.operating.includes(d)){ s.add(d); if(info.avail.includes(d)) count[d]=(count[d]||0)+1; } });
+    map[f.id]=s; } });
+  // automáticos (rodízio gira a ordem de atribuição por semana)
+  let autoFuncs=esc.funcionarios.filter(f=>f.folgaAuto);
+  if(esc.rodizio && autoFuncs.length>1){ const r=((k%autoFuncs.length)+autoFuncs.length)%autoFuncs.length; autoFuncs=autoFuncs.slice(r).concat(autoFuncs.slice(0,r)); }
+  autoFuncs.forEach(f=>{ const s=new Set(info.closed);
+    let sundayFolga=false;
+    if(info.sundayOp){
+      if(f.folgaDomingo) sundayFolga=true; // nunca trabalha domingo
+      else { const N=diasRodizioDomingo(f.sexo); const off=info.offset[f.id]||0; sundayFolga=((((k+off)%N)+N)%N===N-1); }
+    }
+    if(sundayFolga) s.add(0);
+    let need=Math.max(0, info.extra-(sundayFolga?1:0));
+    for(let j=0;j<need;j++){ let best=null,bc=Infinity;
+      for(const d of info.avail){ if(s.has(d))continue; if(count[d]<bc){bc=count[d];best=d;} }
+      if(best===null)break; s.add(best); count[best]=(count[best]||0)+1; }
+    map[f.id]=s;
   });
   return map;
 }
+// nº de domingos de folga do funcionário dentro do ciclo (para checagem de conformidade)
+function domingosFolgaNoCiclo(esc,info,f){ if(!info.sundayOp) return null; let n=0; for(let k=0;k<Math.max(info.cycle, (f.sexo==="F"?2:3));k++){ if(folgasSemana(esc,info,k)[f.id].has(0)) n++; } return n; }
 
 /* ---- render Avançado ---- */
 function renderSelEmpresa(){ const s=$("selEmpresa"); s.innerHTML="";
@@ -462,6 +361,7 @@ function renderFuncs(){
         <div class="field"><label>Nome</label><input type="text" data-fid="${f.id}" data-f="nome" value="${escHtml(f.nome)}"></div>
         <div class="field"><label>Função</label><input type="text" data-fid="${f.id}" data-f="funcao" value="${escHtml(f.funcao)}" placeholder="opcional"></div>
         <div class="field"><label>Horário</label><select data-fid="${f.id}" data-f="modeloId">${opcoes}</select></div>
+        <div class="field"><label>Sexo</label><select data-fid="${f.id}" data-f="sexo"><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
       </div>`;
     if(isCustom){
       html+=`<div class="row" style="margin-top:10px">
@@ -477,12 +377,16 @@ function renderFuncs(){
         <div class="field"><label>Folgas</label><select data-fid="${f.id}" data-f="folgaAuto"><option value="auto">Automáticas</option><option value="manual">Escolher dias</option></select></div>
       </div>`;
     html+=`<label class="inline-chk" style="margin-top:8px"><input type="checkbox" data-fid="${f.id}" data-f="meioPeriodo" ${f.meioPeriodo?"checked":""}> Meio período (mantém o horário cadastrado, sem ajustar para a jornada cheia)</label>`;
-    if(e.operating.includes(0)) html+=`<label class="inline-chk" style="margin-top:8px"><input type="checkbox" data-fid="${f.id}" data-f="folgaDomingo" ${f.folgaDomingo?"checked":""}> Folga aos domingos (não trabalha no domingo)</label>`;
+    if(e.operating.includes(0)){
+      html+=`<label class="inline-chk" style="margin-top:8px"><input type="checkbox" data-fid="${f.id}" data-f="folgaDomingo" ${f.folgaDomingo?"checked":""}> Nunca trabalha aos domingos (folga fixa no domingo)</label>`;
+      if(!f.folgaDomingo) html+=`<p class="note" style="margin:4px 0 0">Trabalha aos domingos com rodízio: folga 1 domingo a cada ${f.sexo==="F"?"2 semanas (mulher)":"3 semanas (homem)"}.</p>`;
+    }
     html+=`<div class="manualWrap" data-fid="${f.id}" style="margin-top:8px"></div>`;
     div.innerHTML=html;
     c.appendChild(div);
     div.querySelector(`select[data-f="modeloId"]`).value=isCustom?"custom":f.modeloId;
     div.querySelector(`select[data-f="divAtual"]`).value=f.divAtual;
+    div.querySelector(`select[data-f="sexo"]`).value=f.sexo||"M";
     div.querySelector(`select[data-f="folgaAuto"]`).value=f.folgaAuto?"auto":"manual";
     if(!f.folgaAuto){
       const mw=div.querySelector(`.manualWrap`);
@@ -518,10 +422,10 @@ function gridHTMLScreen(esc,info,k){
 }
 function renderQuadro(){
   const e=cur(); const info=computeFolgas(e);
-  const rod=e.rodizio && info.autoIds.length>1;
-  const semanas=rod?Math.min(info.autoIds.length,7):1;
+  const semanas=info.cycle;
   let h="";
   if(e.ajustar!==false) h+='<p class="note" style="margin:0 0 8px">Horários ajustados automaticamente para fechar '+(e.meta/60)+'h/semana. Para usar o horário exato dos modelos, desligue em "Empresa".</p>';
+  if(info.sundayOp && info.nSunWorkers) h+='<p class="note" style="margin:0 0 8px">Loja aberta aos domingos: rodízio dominical aplicado (mulher folga 1 domingo a cada 2 semanas; homem a cada 3). O ciclo aparece abaixo, semana a semana.</p>';
   for(let k=0;k<semanas;k++){ if(semanas>1) h+='<h3 style="font-size:.9rem;margin:8px 0 4px">Semana '+(k+1)+'</h3>'; h+=gridHTMLScreen(e,info,k); }
   $("avQuadro").innerHTML=h;
   renderConformidade(e,info);
@@ -531,12 +435,21 @@ function renderConformidade(e,info){
   const al=$("avAlerts"); al.innerHTML=""; const semCCT=!e.temCCT; const meta=e.meta;
   if(!e.funcionarios.length){ addAlert(al,"w","Adicione funcionários para montar o quadro."); return; }
   // cobertura
-  const rod=e.rodizio && info.autoIds.length>1; const semanas=rod?info.autoIds.length:1;
+  const semanas=info.cycle;
   let pior=Infinity, baixos=[];
   for(let k=0;k<semanas;k++){ const fs=folgasSemana(e,info,k);
     for(const d of e.operating){ let t=0; e.funcionarios.forEach(f=>{ if(!fs[f.id].has(d)) t++; }); if(t<pior)pior=t; if(t<1) baixos.push((semanas>1?("S"+(k+1)+"/"):"")+ORDN[ORD.indexOf(d)]); } }
   if(e.operating.length){ if(baixos.length) addAlert(al,"e","Sem ninguém em operação em: "+[...new Set(baixos)].slice(0,8).join(", ")+". Reveja folgas ou adicione gente.");
     else addAlert(al,"g","Cobertura garantida (pior dia: "+pior+" em operação)."); }
+  // conformidade do domingo por sexo (CLT 386 / Lei 10.101)
+  if(info.sundayOp){
+    e.funcionarios.forEach(f=>{ if(!f.folgaAuto) return; const nome=f.nome||"Funcionário";
+      if(f.folgaDomingo){ return; } // nunca trabalha domingo: ok
+      const dom=domingosFolgaNoCiclo(e,info,f); const N=f.sexo==="F"?2:3;
+      if(dom!=null && dom>=1) addAlert(al,"g",nome+" ("+(f.sexo==="F"?"mulher":"homem")+"): folga dominical a cada "+N+" semana(s) — conforme "+(f.sexo==="F"?"CLT art. 386":"Lei 10.101/2000")+".");
+      else addAlert(al,"e",nome+": trabalha aos domingos sem folga dominical no ciclo — exigido a cada "+N+" semana(s).");
+    });
+  }
   // por funcionário
   const fs0=folgasSemana(e,info,0); const ajustar=e.ajustar!==false;
   e.funcionarios.forEach(f=>{
@@ -596,7 +509,7 @@ function gridHTMLPrint(N,nome,folgaFnFactory,closed,peak){
 function legalFooter(){ return '<p style="font-size:10px;margin-top:12px;color:#333">Conforme Portaria MTE 2.041/2026 (jornada de 42h e dois descansos semanais). Confira a CCT da categoria antes de aplicar.</p>'; }
 function buildFolhaAv(){
   const e=cur(); const info=computeFolgas(e); const hoje=new Date().toLocaleDateString("pt-BR");
-  const rod=e.rodizio && info.autoIds.length>1; const semanas=rod?Math.min(info.autoIds.length,7):1;
+  const semanas=info.cycle;
   const peak=(e.peak||[]).filter(d=>e.operating.includes(d));
   let h='<div style="font-family:Arial,Helvetica,sans-serif;color:#000;padding:10px">';
   h+='<h1 style="text-align:center;margin:0 0 4px;font-size:20px">Escala de Trabalho — Jornada de 42h</h1>';
@@ -686,7 +599,8 @@ $("avFuncs").addEventListener("change",e=>{ const t=e.target; const fid=t.datase
   else if(k==="divAtual"){ f.divAtual=+t.value; save(); renderQuadro(); }
   else if(k==="folgaAuto"){ f.folgaAuto=(t.value==="auto"); if(!f.folgaAuto && !f.folgas.length){ /* sugere dias automáticos iniciais */ } save(); renderFuncs(); renderQuadro(); }
   else if(k==="meioPeriodo"){ f.meioPeriodo=t.checked; save(); renderQuadro(); }
-  else if(k==="folgaDomingo"){ f.folgaDomingo=t.checked; save(); renderQuadro(); }
+  else if(k==="folgaDomingo"){ f.folgaDomingo=t.checked; save(); renderFuncs(); renderQuadro(); }
+  else if(k==="sexo"){ f.sexo=t.value; save(); renderFuncs(); renderQuadro(); }
 });
 $("avFuncs").addEventListener("click",e=>{
   const del=e.target.closest("[data-delfunc]");
@@ -713,23 +627,7 @@ $("fileImport").addEventListener("change",ev=>{ const f=ev.target.files[0]; if(!
   r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.empresas&&d.empresas.length){ store=d; if(!store.sel)store.sel=store.empresas[0].id; save(); renderAvancado(); } else alert("Arquivo inválido."); }catch(e){ alert("Arquivo inválido."); } };
   r.readAsText(f); ev.target.value=""; });
 
-/* ===== Simples eventos ===== */
-document.querySelectorAll("#sFunc button").forEach(b=>b.addEventListener("click",()=>{
-  sOp=b.dataset.op; document.querySelectorAll("#sFunc button").forEach(x=>x.classList.toggle("on",x===b)); renderPeakChips(); renderSimples(); }));
-["sEmpresa","sEnt","sInt","sMeta","sN","sNomes"].forEach(id=>{ const el=$(id); if(el) el.addEventListener("input",renderSimples); });
-$("sRodizio").addEventListener("change",renderSimples);
-$("sPrint").addEventListener("click",()=>{ $("folhaPrint").innerHTML=buildFolhaSimples(); setTimeout(()=>window.print(),50); });
-
-/* ===== view toggle ===== */
-function setView(v){ const s=v==="simples";
-  $("simples").classList.toggle("hide",!s); $("avancado").classList.toggle("hide",s);
-  $("viewSimplesBtn").className=s?"on":""; $("viewAvancadoBtn").className=s?"":"on";
-  if(s){ renderPeakChips(); renderSimples(); } else renderAvancado();
-}
-$("viewSimplesBtn").addEventListener("click",()=>setView("simples"));
-$("viewAvancadoBtn").addEventListener("click",()=>setView("avancado"));
-
-load(); setView("simples");
+load(); renderAvancado();
 </script>
 
 <script>
