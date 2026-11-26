@@ -4,12 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EscalaCerta — Jornada de 42h</title>
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#3b5bdb">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="EscalaCerta">
-
 <style>
   :root{
     --bg:#f7f8fa; --card:#ffffff; --ink:#1f2933; --muted:#667085; --line:#e6e8ec;
@@ -118,6 +112,11 @@
     opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3b5bdb">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EscalaCerta">
 </head>
 <body>
 <div class="wrap">
@@ -278,23 +277,42 @@ function computeFolgas(esc){
   const autoIds=esc.funcionarios.filter(f=>f.folgaAuto).map(f=>f.id);
   const sunWorkers=esc.funcionarios.filter(f=>sundayOp && f.folgaAuto && !f.folgaDomingo);
   const minDom=Math.max(0, esc.minDomingo!=null?esc.minDomingo:1); // mínimo em operação no domingo
-  // ciclo de semanas a exibir
-  let cycle=1;
-  if(sunWorkers.length){ const hasF=sunWorkers.some(f=>f.sexo==="F"); const hasM=sunWorkers.some(f=>f.sexo!=="F"); cycle=(hasF&&hasM)?6:(hasF?2:3); }
-  if(esc.rodizio && autoIds.length>1) cycle=Math.max(cycle,Math.min(autoIds.length,6));
-  cycle=Math.min(cycle,8);
-  // escala coordenada do domingo: folga só quando atinge o limite de domingos seguidos; mantém >= minDom trabalhando
-  const sunday={offByWeek:[],coverageBreak:[]};
-  if(sundayOp && sunWorkers.length){
-    const run={}; sunWorkers.forEach((f,i)=>run[f.id]=i); // escalonado, para não folgarem todos juntos
-    for(let k=0;k<cycle;k++){ const offs=new Set();
-      sunWorkers.forEach(f=>{ if(run[f.id]>=maxDomingosSeguidos(f.sexo)) offs.add(f.id); });
-      if(sunWorkers.length-offs.size < minDom) sunday.coverageBreak.push(k);
-      sunWorkers.forEach(f=>{ if(offs.has(f.id)) run[f.id]=0; else run[f.id]+=1; });
-      sunday.offByWeek.push(offs);
+  const W=sunWorkers.length;
+  // escala do domingo: rodízio que mantém >= minDom trabalhando e respeita o limite legal de domingos seguidos
+  // (mulher no máx. 1 domingo seguido = folga a cada 2; homem no máx. 2 = folga a cada 3)
+  const sunday={offByWeek:[],period:1,falha:false};
+  if(sundayOp && W){
+    const allowedOff=W-minDom; // quantos podem folgar por domingo sem furar a cobertura mínima
+    // "wso" = domingos trabalhados seguidos; início escalonado p/ não folgarem todos juntos
+    const wso={}; sunWorkers.forEach((f,i)=>wso[f.id]=Math.min(i,maxDomingosSeguidos(f.sexo)));
+    const tmp=[]; const seen={}; let start=0,period=0;
+    for(let k=0;k<60;k++){
+      const sig=sunWorkers.map(f=>wso[f.id]).join(",");
+      if(seen[sig]!=null){ start=seen[sig]; period=k-seen[sig]; break; } // estado repetiu → ciclo fechado
+      seen[sig]=k;
+      // quem atingiu o limite TEM de folgar neste domingo
+      const offs=new Set(sunWorkers.filter(f=>wso[f.id]>=maxDomingosSeguidos(f.sexo)).map(f=>f.id));
+      // folga antecipada dos mais "adiantados" (p/ dessincronizar), até o limite de cobertura; mulher primeiro
+      if(offs.size<allowedOff){
+        const cand=sunWorkers.filter(f=>!offs.has(f.id)&&wso[f.id]>=1)
+          .sort((a,b)=>(wso[b.id]-wso[a.id])||((a.sexo==="F"?-1:1)));
+        for(const f of cand){ if(offs.size>=allowedOff)break; offs.add(f.id); }
+      }
+      const falha=(W-offs.size)<minDom; // ninguém (ou menos que o mínimo) sobra no domingo
+      tmp.push({offs,falha});
+      sunWorkers.forEach(f=>{ wso[f.id]=offs.has(f.id)?0:wso[f.id]+1; });
     }
+    if(!period){ start=0; period=Math.max(1,tmp.length); } // fallback (não deve ocorrer p/ times pequenos)
+    const slice=tmp.slice(start,start+period);
+    sunday.offByWeek=slice.map(x=>x.offs);
+    sunday.period=Math.max(1,slice.length);
+    sunday.falha=slice.some(x=>x.falha);
   }
-  return {operating,peak,closed,sundayOp,avail,extra,autoIds,cycle,nSunWorkers:sunWorkers.length,minDom,sunday};
+  // ciclo de semanas a exibir: o período do domingo, combinado com o rodízio de folgas de dia útil
+  let cycle=sunday.period;
+  if(esc.rodizio && autoIds.length>1) cycle=Math.max(cycle,Math.min(autoIds.length,6));
+  cycle=Math.min(Math.max(cycle,1),8);
+  return {operating,peak,closed,sundayOp,avail,extra,autoIds,cycle,nSunWorkers:W,minDom,sunday};
 }
 function folgasSemana(esc,info,k){
   const map={}; const count={}; info.avail.forEach(d=>count[d]=0);
@@ -303,12 +321,11 @@ function folgasSemana(esc,info,k){
     map[f.id]=s; } });
   let autoFuncs=esc.funcionarios.filter(f=>f.folgaAuto);
   if(esc.rodizio && autoFuncs.length>1){ const r=((k%autoFuncs.length)+autoFuncs.length)%autoFuncs.length; autoFuncs=autoFuncs.slice(r).concat(autoFuncs.slice(0,r)); }
-  const kk=info.cycle?(((k%info.cycle)+info.cycle)%info.cycle):0;
   autoFuncs.forEach(f=>{ const s=new Set(info.closed);
     let sundayFolga=false;
     if(info.sundayOp){
       if(f.folgaDomingo) sundayFolga=true;
-      else if(info.sunday.offByWeek.length) sundayFolga=info.sunday.offByWeek[kk].has(f.id);
+      else if(info.sunday.offByWeek.length){ const p=info.sunday.period||info.sunday.offByWeek.length; const kk=(((k%p)+p)%p); sundayFolga=info.sunday.offByWeek[kk].has(f.id); }
     }
     if(sundayFolga) s.add(0);
     let need=Math.max(0, info.extra-(sundayFolga?1:0));
@@ -453,9 +470,8 @@ function renderConformidade(e,info){
     else addAlert(al,"g","Cobertura garantida (pior dia: "+pior+" em operação)."); }
   // conformidade do domingo por sexo (CLT 386 / Lei 10.101) + cobertura dominical
   if(info.sundayOp){
-    if(info.sunday.coverageBreak.length){
-      const sem=info.sunday.coverageBreak.map(k=>"semana "+(k+1)).join(", ");
-      addAlert(al,"e","No domingo da "+sem+", ninguém fica na loja: todos atingem a folga dominical obrigatória ao mesmo tempo. Inclua mais alguém que trabalhe aos domingos para cobrir o rodízio.");
+    if(info.sunday.falha){
+      addAlert(al,"e","Em algum domingo do ciclo não sobra o mínimo na loja: há gente demais atingindo a folga dominical obrigatória ao mesmo tempo. Inclua mais alguém que trabalhe aos domingos para cobrir o rodízio.");
     }
     e.funcionarios.forEach(f=>{ if(!f.folgaAuto) return; const nome=f.nome||"Funcionário";
       if(f.folgaDomingo){ return; }
@@ -643,7 +659,6 @@ $("fileImport").addEventListener("change",ev=>{ const f=ev.target.files[0]; if(!
 
 load(); renderAvancado();
 </script>
-
 <script>
 if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
 </script>
