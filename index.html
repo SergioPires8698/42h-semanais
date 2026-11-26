@@ -308,10 +308,13 @@ function computeFolgas(esc){
     sunday.period=Math.max(1,slice.length);
     sunday.falha=slice.some(x=>x.falha);
   }
-  // ciclo de semanas a exibir: o período do domingo, combinado com o rodízio de folgas de dia útil
-  let cycle=sunday.period;
-  if(esc.rodizio && autoIds.length>1) cycle=Math.max(cycle,Math.min(autoIds.length,6));
-  cycle=Math.min(Math.max(cycle,1),8);
+  // ciclo de semanas a exibir: visão mensal (~4 semanas) p/ os donos verem as folgas do mês
+  const lcmN=(a,b)=>{ const g=(x,y)=>y?g(y,x%y):x; return Math.round(a*b/g(a,b)); };
+  let base=sunday.period;
+  if(esc.rodizio && autoIds.length>1) base=lcmN(base, Math.min(autoIds.length,6));
+  const hasRot=(sundayOp && W>0 && sunday.period>1) || (esc.rodizio && autoIds.length>1);
+  let cycle = hasRot ? Math.ceil(4/base)*base : base; // sobe até cobrir ~1 mês
+  cycle=Math.min(Math.max(cycle,1),6);
   return {operating,peak,closed,sundayOp,avail,extra,autoIds,cycle,nSunWorkers:W,minDom,sunday};
 }
 function folgasSemana(esc,info,k){
@@ -337,7 +340,7 @@ function folgasSemana(esc,info,k){
   return map;
 }
 // nº de domingos de folga do funcionário dentro do ciclo (para checagem de conformidade)
-function domingosFolgaNoCiclo(esc,info,f){ if(!info.sundayOp) return null; let n=0; for(let k=0;k<Math.max(info.cycle, (f.sexo==="F"?2:3));k++){ if(folgasSemana(esc,info,k)[f.id].has(0)) n++; } return n; }
+function domingosFolgaNoCiclo(esc,info,f){ if(!info.sundayOp) return null; let n=0; for(let k=0;k<Math.max(1,info.cycle);k++){ if(folgasSemana(esc,info,k)[f.id].has(0)) n++; } return n; }
 
 /* ---- render Avançado ---- */
 function renderSelEmpresa(){ const s=$("selEmpresa"); s.innerHTML="";
@@ -452,7 +455,7 @@ function renderQuadro(){
   const semanas=info.cycle;
   let h="";
   if(e.ajustar!==false) h+='<p class="note" style="margin:0 0 8px">Horários ajustados automaticamente para fechar '+(e.meta/60)+'h/semana. Para usar o horário exato dos modelos, desligue em "Empresa".</p>';
-  if(info.sundayOp && info.nSunWorkers) h+='<p class="note" style="margin:0 0 8px">Loja aberta aos domingos: rodízio dominical aplicado (mulher folga 1 domingo a cada 2 semanas; homem a cada 3). O ciclo aparece abaixo, semana a semana.</p>';
+  if(info.sundayOp && info.nSunWorkers) h+='<p class="note" style="margin:0 0 8px">Loja aberta aos domingos: rodízio dominical aplicado (mulher folga 1 domingo a cada 2 semanas; homem a cada 3). Visão mensal — as semanas abaixo mostram como as folgas se distribuem no mês.</p>';
   for(let k=0;k<semanas;k++){ if(semanas>1) h+='<h3 style="font-size:.9rem;margin:8px 0 4px">Semana '+(k+1)+'</h3>'; h+=gridHTMLScreen(e,info,k); }
   $("avQuadro").innerHTML=h;
   renderConformidade(e,info);
@@ -475,9 +478,10 @@ function renderConformidade(e,info){
     }
     e.funcionarios.forEach(f=>{ if(!f.folgaAuto) return; const nome=f.nome||"Funcionário";
       if(f.folgaDomingo){ return; }
-      const dom=domingosFolgaNoCiclo(e,info,f); const N=f.sexo==="F"?2:3;
-      if(dom!=null && dom>=1) addAlert(al,"g",nome+" ("+(f.sexo==="F"?"mulher":"homem")+"): folga 1 domingo a cada "+N+" semana(s) — conforme "+(f.sexo==="F"?"CLT art. 386":"Lei 10.101/2000")+".");
-      else addAlert(al,"e",nome+": trabalha aos domingos sem folga dominical no ciclo — exigido a cada "+N+" semana(s).");
+      const dom=domingosFolgaNoCiclo(e,info,f); const N=f.sexo==="F"?2:3; const sem=Math.max(1,info.cycle);
+      const lei=f.sexo==="F"?"CLT art. 386":"Lei 10.101/2000"; const need=Math.max(1,Math.floor(sem/N));
+      if(dom!=null && dom>=need) addAlert(al,"g",nome+" ("+(f.sexo==="F"?"mulher":"homem")+"): "+dom+" folga(s) aos domingos em "+sem+" semanas — conforme "+lei+" (1 a cada "+N+").");
+      else addAlert(al,"e",nome+" ("+(f.sexo==="F"?"mulher":"homem")+"): só "+(dom||0)+" folga dominical em "+sem+" semanas — exigido 1 a cada "+N+" ("+lei+"). Inclua mais quem trabalhe aos domingos.");
     });
   }
   // por funcionário
