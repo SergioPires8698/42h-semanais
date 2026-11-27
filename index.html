@@ -549,29 +549,29 @@ function renderQuadro(){
   renderConformidade(e,info);
   renderFolhaAv(e,info);
 }
-function renderConformidade(e,info){
-  const al=$("avAlerts"); al.innerHTML=""; const semCCT=!e.temCCT; const meta=e.meta;
-  if(!e.funcionarios.length){ addAlert(al,"w","Adicione funcionários para montar o quadro."); return; }
+// gera a lista de avisos (usada na tela e na impressão) — [{t:'g'|'w'|'e', msg}]
+function computeAlerts(e,info){
+  const out=[]; const push=(t,msg)=>out.push({t,msg}); const semCCT=!e.temCCT; const meta=e.meta;
+  if(!e.funcionarios.length){ push("w","Adicione funcionários para montar o quadro."); return out; }
   // cobertura
-  const semanas=info.cycle;
-  let pior=Infinity, baixos=[];
+  const semanas=info.cycle; let pior=Infinity, baixos=[];
   for(let k=0;k<semanas;k++){ const fs=folgasSemana(e,info,k);
     for(const d of e.operating){ let t=0; e.funcionarios.forEach(f=>{ if(!fs[f.id].has(d)) t++; }); if(t<pior)pior=t; if(t<1) baixos.push((semanas>1?("S"+(k+1)+"/"):"")+ORDN[ORD.indexOf(d)]); } }
-  if(e.operating.length){ if(baixos.length) addAlert(al,"e","Sem ninguém em operação em: "+[...new Set(baixos)].slice(0,8).join(", ")+". Reveja folgas ou adicione gente.");
-    else addAlert(al,"g","Cobertura garantida (pior dia: "+pior+" em operação)."); }
-  // conformidade do domingo por sexo (CLT 386 / Lei 10.101) + cobertura dominical
+  if(e.operating.length){ if(baixos.length) push("e","Sem ninguém em operação em: "+[...new Set(baixos)].slice(0,8).join(", ")+". Reveja folgas ou adicione gente.");
+    else push("g","Cobertura garantida (pior dia: "+pior+" em operação)."); }
+  // domingo (CLT 386 / Lei 10.101) + folga devida
   if(info.sundayOp){
     const devem=info.sunday.devem||new Set();
     if(devem.size){
       const nomes=e.funcionarios.filter(f=>devem.has(f.id)).map(f=>f.nome||"Funcionário");
-      addAlert(al,"w","A escala mantém sempre alguém no domingo para o dono usar, mas está irregular: "+nomes.join(", ")+" trabalha(m) um domingo que seria de folga. Essa folga dominical fica devida — compense no período seguinte, ou inclua mais alguém que trabalhe aos domingos.");
+      push("w","A escala mantém sempre alguém no domingo para o dono usar, mas está irregular: "+nomes.join(", ")+" trabalha(m) um domingo que seria de folga. Essa folga dominical fica devida — compense no período seguinte, ou inclua mais alguém que trabalhe aos domingos.");
     }
     e.funcionarios.forEach(f=>{ if(!f.folgaAuto || f.folgaDomingo) return; const nome=f.nome||"Funcionário";
       const dom=domingosFolgaNoCiclo(e,info,f); const N=f.sexo==="F"?2:3; const sem=Math.max(1,info.cycle);
       const lei=f.sexo==="F"?"CLT art. 386":"Lei 10.101/2000"; const need=Math.max(1,Math.floor(sem/N)); const lab=f.sexo==="F"?"mulher":"homem";
-      if(devem.has(f.id)) addAlert(al,"w",nome+" ("+lab+"): "+(dom||0)+" folga(s) aos domingos em "+sem+" semanas — abaixo do exigido (1 a cada "+N+", "+lei+"). Trabalhou domingo para cobrir a loja; compense a folga depois.");
-      else if(dom!=null && dom>=need) addAlert(al,"g",nome+" ("+lab+"): "+dom+" folga(s) aos domingos em "+sem+" semanas — conforme "+lei+" (1 a cada "+N+").");
-      else addAlert(al,"w",nome+" ("+lab+"): "+(dom||0)+" folga dominical em "+sem+" semanas — abaixo de 1 a cada "+N+" ("+lei+").");
+      if(devem.has(f.id)) push("w",nome+" ("+lab+"): "+(dom||0)+" folga(s) aos domingos em "+sem+" semanas — abaixo do exigido (1 a cada "+N+", "+lei+"). Trabalhou domingo para cobrir a loja; compense a folga depois.");
+      else if(dom!=null && dom>=need) push("g",nome+" ("+lab+"): "+dom+" folga(s) aos domingos em "+sem+" semanas — conforme "+lei+" (1 a cada "+N+").");
+      else push("w",nome+" ("+lab+"): "+(dom||0)+" folga dominical em "+sem+" semanas — abaixo de 1 a cada "+N+" ("+lei+").");
     });
   }
   // por funcionário
@@ -580,21 +580,26 @@ function renderConformidade(e,info){
     const folga=fs0[f.id]; const nome=f.nome||"Funcionário"; const wk=funcWeek(e,f,folga);
     const dias=wk.work.length; const tot=wk.total; const folgasN=folga.size;
     const ovTxt=wk.hasOverride?" (horário específico em "+wk.overr.length+" dia"+(wk.overr.length>1?"s":"")+")":"";
-    if(folgasN<2) addAlert(al,"e",nome+": só "+folgasN+" folga(s) na semana — a norma exige 2.");
+    if(folgasN<2) push("e",nome+": só "+folgasN+" folga(s) na semana — a norma exige 2.");
     let over10=0, over824=0, needInt=false;
     wk.work.forEach(d=>{ const dm=wk.durByDay[d]; if(dm>over10)over10=dm>600?dm:over10; if(semCCT&&dm>504&&dm>over824)over824=dm; if(dm>360&&(+wk.byDay[d].intervalo||0)<60)needInt=true; });
     const ex=weekExtras(e,wk);
-    if(over10>600) addAlert(al,"e",nome+": "+fmtDur(over10)+" em um dia — acima de 10h não é permitido (teto diário). Reveja o horário.");
-    else if(over824>504) addAlert(al,"w",nome+": "+fmtDur(over824)+" em um dia passa de 8h24 — sem CCT, o excedente entra como hora extra (já somado na folha).");
-    if(ex.extraMin>0) addAlert(al,"w",nome+": "+fmtDur(ex.extraMin)+" de hora extra na semana"+(ex.extraDia>0&&ex.extraSem>0?" ("+fmtDur(ex.extraDia)+" por passar de 8h24/dia + "+fmtDur(ex.extraSem)+" por passar de "+(meta/60)+"h/semana)":(ex.extraDia>0?" (por passar de 8h24/dia)":" (por passar de "+(meta/60)+"h/semana)"))+" — ver valores na folha.");
+    if(over10>600) push("e",nome+": "+fmtDur(over10)+" em um dia — acima de 10h não é permitido (teto diário). Reveja o horário.");
+    else if(over824>504) push("w",nome+": "+fmtDur(over824)+" em um dia passa de 8h24 — sem CCT, o excedente entra como hora extra (já somado na folha).");
+    if(ex.extraMin>0) push("w",nome+": "+fmtDur(ex.extraMin)+" de hora extra na semana"+(ex.extraDia>0&&ex.extraSem>0?" ("+fmtDur(ex.extraDia)+" por passar de 8h24/dia + "+fmtDur(ex.extraSem)+" por passar de "+(meta/60)+"h/semana)":(ex.extraDia>0?" (por passar de 8h24/dia)":" (por passar de "+(meta/60)+"h/semana)"))+" — ver valores na folha.");
     if(ajustar && !f.meioPeriodo){
-      if(dias>0 && Math.abs(tot-meta)<=5) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana (fecha "+(meta/60)+"h)"+ovTxt+".");
-      else if(tot>meta+5) addAlert(al,"w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h"+ovTxt+" — reveja os horários fixos.");
-      else if(tot>0) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana"+ovTxt+".");
+      if(dias>0 && Math.abs(tot-meta)<=5) push("g",nome+": "+fmtDur(tot)+"/semana (fecha "+(meta/60)+"h)"+ovTxt+".");
+      else if(tot>meta+5) push("w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h"+ovTxt+" — reveja os horários fixos.");
+      else if(tot>0) push("g",nome+": "+fmtDur(tot)+"/semana"+ovTxt+".");
     }
-    else { if(tot>meta+1) addAlert(al,"w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h"+ovTxt+"."); else if(tot>0&&tot<meta-1) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana (abaixo de "+(meta/60)+"h — jornada menor)"+ovTxt+"."); else if(tot>0) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana"+ovTxt+"."); }
-    if(needInt) addAlert(al,"w",nome+": jornada acima de 6h exige intervalo mínimo de 1h.");
+    else { if(tot>meta+1) push("w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h"+ovTxt+"."); else if(tot>0&&tot<meta-1) push("g",nome+": "+fmtDur(tot)+"/semana (abaixo de "+(meta/60)+"h — jornada menor)"+ovTxt+"."); else if(tot>0) push("g",nome+": "+fmtDur(tot)+"/semana"+ovTxt+"."); }
+    if(needInt) push("w",nome+": jornada acima de 6h exige intervalo mínimo de 1h.");
   });
+  return out;
+}
+function renderConformidade(e,info){
+  const al=$("avAlerts"); al.innerHTML="";
+  computeAlerts(e,info).forEach(a=>addAlert(al,a.t,a.msg));
 }
 function renderFolhaAv(e,info){
   const div=e.meta===2520?210:200; const semMes=4.3333; const pct=(e.pctExtra!=null?e.pctExtra:50);
@@ -650,10 +655,19 @@ function buildFolhaAv(){
   for(let k=0;k<semanas;k++){
     const fs=folgasSemana(e,info,k);
     h+='<h3 style="margin:12px 0 4px;font-size:13px">'+(semanas>1?("Semana "+(k+1)):"Escala semanal")+'</h3>';
+    const pp=info.sunday.period||1; const fw=(info.sunday.forcedByWeek&&info.sunday.forcedByWeek.length)?info.sunday.forcedByWeek[((k%pp)+pp)%pp]:null;
     h+=gridHTMLPrint(e.funcionarios.length, i=>e.funcionarios[i].nome||("Funcionário "+(i+1)),
         i=>{const f=e.funcionarios[i]; const folga=fs[f.id]; const wk=funcWeek(e,f,folga);
-            return d=>info.closed.includes(d)?null:(folga.has(d)?"folga":(wk.byDay[d].entrada+"–"+wk.byDay[d].saida));},
+            return d=>info.closed.includes(d)?null:(folga.has(d)?"folga":(wk.byDay[d].entrada+"–"+wk.byDay[d].saida+(d===0&&fw&&fw.has(f.id)?" ⚠":"")));},
         info.closed, peak);
+  }
+  // conformidade (domingo + horas extras + cobertura) para o dono ver
+  const alerts=computeAlerts(e,info);
+  if(info.sundayOp && info.sunday.devem && info.sunday.devem.size) h+='<p style="font-size:10px;margin:8px 0 0;color:#8a6d00"><b>⚠</b> no domingo = trabalhou em folga devida: a loja fica coberta, mas essa folga dominical precisa ser compensada depois.</p>';
+  if(alerts.length){
+    const col={e:'#c0392b',w:'#8a6d00',g:'#12805c'}; const bg={e:'#fbece9',w:'#fbf3d6',g:'#e7f4ee'};
+    h+='<h3 style="margin:14px 0 4px;font-size:12px">Conformidade e horas extras</h3>';
+    h+='<div style="font-size:10.5px;line-height:1.5">'+alerts.map(a=>'<div style="margin:2px 0;padding:4px 7px;border-radius:3px;background:'+bg[a.t]+';color:'+col[a.t]+'">'+(a.t==='e'?'✗ ':a.t==='w'?'⚠ ':'✓ ')+escHtml(a.msg)+'</div>').join('')+'</div>';
   }
   // horários usados
   const fs0=folgasSemana(e,info,0);
