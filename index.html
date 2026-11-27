@@ -300,6 +300,14 @@ function funcWeek(esc,f,folga){
   work.forEach(d=>{ const dm=shiftMin(byDay[d]); durByDay[d]=dm; total+=dm; night+=nightMinShift(byDay[d]); if(dm>maxDur)maxDur=dm; });
   return {byDay,durByDay,work,total,night,maxDur,overr,normal,hasOverride:overr.length>0};
 }
+// horas extras da semana: sem CCT, o que passa de 8h24 num dia é extra; soma-se ao que passa da meta semanal
+function weekExtras(e,wk){
+  const semCCT=!e.temCCT; const cap=semCCT?504:Infinity; // sem CCT o teto diário é 8h24 (STF); com CCT, a norma coletiva rege o diário
+  let extraDia=0, normalWeek=0;
+  wk.work.forEach(d=>{ const dm=wk.durByDay[d]; const norm=Math.min(dm,cap); extraDia+=(dm-norm); normalWeek+=norm; });
+  const extraSem=Math.max(0, normalWeek - e.meta);
+  return {extraMin:extraDia+extraSem, extraDia, extraSem, cap, semCCT};
+}
 // folgas base (semana 0) por funcionário: manuais primeiro, automáticas equilibrando movimento/cobertura
 // sexo define o rodízio de domingo: mulher folga 1 domingo a cada 2 semanas (CLT 386); homem a cada 3 (Lei 10.101/2000)
 function diasRodizioDomingo(sexo){ return sexo==="F"?2:3; }
@@ -317,33 +325,43 @@ function computeFolgas(esc){
   const minDom=Math.max(1, Math.min(esc.minDomingo!=null?esc.minDomingo:1, Math.max(1,W))); // mínimo em operação no domingo (dia movimentado = mais gente)
   // escala do domingo: rodízio que mantém >= minDom trabalhando e respeita o limite legal de domingos seguidos
   // (mulher no máx. 1 domingo seguido = folga a cada 2; homem no máx. 2 = folga a cada 3)
-  const sunday={offByWeek:[],period:1,falha:false};
+  const sunday={offByWeek:[],forcedByWeek:[],period:1,falha:false,devem:new Set()};
   if(sundayOp && W){
     const allowedOff=W-minDom; // quantos podem folgar por domingo sem furar a cobertura mínima
-    // "wso" = domingos trabalhados seguidos; início escalonado p/ não folgarem todos juntos
+    const sx={}; sunWorkers.forEach(f=>sx[f.id]=f.sexo); const mr=id=>maxDomingosSeguidos(sx[id]);
+    // "wso" = domingos trabalhados seguidos (capado no limite); início escalonado p/ não folgarem todos juntos
     const wso={}; sunWorkers.forEach((f,i)=>wso[f.id]=Math.min(i,maxDomingosSeguidos(f.sexo)));
+    const forcedCount={}; sunWorkers.forEach(f=>forcedCount[f.id]=0);
     const tmp=[]; const seen={}; let start=0,period=0;
-    for(let k=0;k<60;k++){
+    for(let k=0;k<120;k++){
       const sig=sunWorkers.map(f=>wso[f.id]).join(",");
       if(seen[sig]!=null){ start=seen[sig]; period=k-seen[sig]; break; } // estado repetiu → ciclo fechado
       seen[sig]=k;
       // quem atingiu o limite TEM de folgar neste domingo
-      const offs=new Set(sunWorkers.filter(f=>wso[f.id]>=maxDomingosSeguidos(f.sexo)).map(f=>f.id));
+      const offs=new Set(sunWorkers.filter(f=>wso[f.id]>=mr(f.id)).map(f=>f.id));
       // folga antecipada dos mais "adiantados" (p/ dessincronizar), até o limite de cobertura; mulher primeiro
       if(offs.size<allowedOff){
         const cand=sunWorkers.filter(f=>!offs.has(f.id)&&wso[f.id]>=1)
           .sort((a,b)=>(wso[b.id]-wso[a.id])||((a.sexo==="F"?-1:1)));
         for(const f of cand){ if(offs.size>=allowedOff)break; offs.add(f.id); }
       }
-      const falha=(W-offs.size)<minDom; // ninguém (ou menos que o mínimo) sobra no domingo
-      tmp.push({offs,falha});
-      sunWorkers.forEach(f=>{ wso[f.id]=offs.has(f.id)?0:wso[f.id]+1; });
+      // SEMPRE deixar o mínimo na loja: se faltar, forçar quem estava de folga a trabalhar (folga dominical devida)
+      const forced=new Set();
+      if(W-offs.size<minDom){
+        const need=minDom-(W-offs.size);
+        const pool=[...offs].sort((a,b)=>(forcedCount[a]-forcedCount[b])||((sx[a]==="F"?1:-1))); // espalha o ônus; mantém a folga da mulher por último
+        for(let i=0;i<need && i<pool.length;i++){ const id=pool[i]; offs.delete(id); forced.add(id); forcedCount[id]++; }
+      }
+      tmp.push({offs,forced});
+      sunWorkers.forEach(f=>{ wso[f.id]=offs.has(f.id)?0:Math.min(wso[f.id]+1, mr(f.id)); });
     }
-    if(!period){ start=0; period=Math.max(1,tmp.length); } // fallback (não deve ocorrer p/ times pequenos)
+    if(!period){ start=0; period=Math.max(1,tmp.length); } // fallback
     const slice=tmp.slice(start,start+period);
     sunday.offByWeek=slice.map(x=>x.offs);
+    sunday.forcedByWeek=slice.map(x=>x.forced);
     sunday.period=Math.max(1,slice.length);
-    sunday.falha=slice.some(x=>x.falha);
+    sunday.falha=slice.some(x=>x.forced.size>0);
+    slice.forEach(x=>x.forced.forEach(id=>sunday.devem.add(id)));
   }
   // ciclo de semanas a exibir: visão mensal (~4 semanas) p/ os donos verem as folgas do mês
   const lcmN=(a,b)=>{ const g=(x,y)=>y?g(y,x%y):x; return Math.round(a*b/g(a,b)); };
@@ -508,7 +526,9 @@ function gridHTMLScreen(esc,info,k){
     ORD.forEach(d=>{
       if(info.closed.includes(d)) h+='<td class="off">—</td>';
       else if(folga.has(d)) h+='<td class="off">Folga</td>';
-      else { const sd=wk.byDay[d]; h+='<td class="on"'+(sd.override?' style="font-weight:600"':'')+'>'+sd.entrada+'–'+sd.saida+'</td>'; cont[d]++; }
+      else { const sd=wk.byDay[d]; let mk='';
+        if(d===0 && info.sunday.forcedByWeek && info.sunday.forcedByWeek.length){ const p=info.sunday.period||1; const fw=info.sunday.forcedByWeek[((k%p)+p)%p]; if(fw && fw.has(f.id)) mk=' <span title="Folga dominical devida — compense no período seguinte" style="color:var(--warn)">⚠</span>'; }
+        h+='<td class="on"'+(sd.override?' style="font-weight:600"':'')+'>'+sd.entrada+'–'+sd.saida+mk+'</td>'; cont[d]++; }
     });
     h+='<td>'+fmtDur(wk.total)+'</td></tr>';
   });
@@ -523,6 +543,7 @@ function renderQuadro(){
   let h="";
   if(e.ajustar!==false) h+='<p class="note" style="margin:0 0 8px">Horários ajustados automaticamente para fechar '+(e.meta/60)+'h/semana. Para usar o horário exato dos modelos, desligue em "Empresa".</p>';
   if(info.sundayOp && info.nSunWorkers) h+='<p class="note" style="margin:0 0 8px">Loja aberta aos domingos: rodízio dominical aplicado (mulher folga 1 domingo a cada 2 semanas; homem a cada 3). Visão mensal — as semanas abaixo mostram como as folgas se distribuem no mês.</p>';
+  if(info.sundayOp && info.sunday.devem && info.sunday.devem.size) h+='<p class="note" style="margin:0 0 8px;color:var(--warn)">⚠ no domingo = trabalhou em folga devida: a escala mantém alguém na loja, mas essa folga dominical precisa ser compensada depois.</p>';
   for(let k=0;k<semanas;k++){ if(semanas>1) h+='<h3 style="font-size:.9rem;margin:8px 0 4px">Semana '+(k+1)+'</h3>'; h+=gridHTMLScreen(e,info,k); }
   $("avQuadro").innerHTML=h;
   renderConformidade(e,info);
@@ -540,15 +561,17 @@ function renderConformidade(e,info){
     else addAlert(al,"g","Cobertura garantida (pior dia: "+pior+" em operação)."); }
   // conformidade do domingo por sexo (CLT 386 / Lei 10.101) + cobertura dominical
   if(info.sundayOp){
-    if(info.sunday.falha){
-      addAlert(al,"e","Em algum domingo do ciclo não sobra o mínimo na loja: há gente demais atingindo a folga dominical obrigatória ao mesmo tempo. Inclua mais alguém que trabalhe aos domingos para cobrir o rodízio.");
+    const devem=info.sunday.devem||new Set();
+    if(devem.size){
+      const nomes=e.funcionarios.filter(f=>devem.has(f.id)).map(f=>f.nome||"Funcionário");
+      addAlert(al,"w","A escala mantém sempre alguém no domingo para o dono usar, mas está irregular: "+nomes.join(", ")+" trabalha(m) um domingo que seria de folga. Essa folga dominical fica devida — compense no período seguinte, ou inclua mais alguém que trabalhe aos domingos.");
     }
-    e.funcionarios.forEach(f=>{ if(!f.folgaAuto) return; const nome=f.nome||"Funcionário";
-      if(f.folgaDomingo){ return; }
+    e.funcionarios.forEach(f=>{ if(!f.folgaAuto || f.folgaDomingo) return; const nome=f.nome||"Funcionário";
       const dom=domingosFolgaNoCiclo(e,info,f); const N=f.sexo==="F"?2:3; const sem=Math.max(1,info.cycle);
-      const lei=f.sexo==="F"?"CLT art. 386":"Lei 10.101/2000"; const need=Math.max(1,Math.floor(sem/N));
-      if(dom!=null && dom>=need) addAlert(al,"g",nome+" ("+(f.sexo==="F"?"mulher":"homem")+"): "+dom+" folga(s) aos domingos em "+sem+" semanas — conforme "+lei+" (1 a cada "+N+").");
-      else addAlert(al,"e",nome+" ("+(f.sexo==="F"?"mulher":"homem")+"): só "+(dom||0)+" folga dominical em "+sem+" semanas — exigido 1 a cada "+N+" ("+lei+"). Inclua mais quem trabalhe aos domingos.");
+      const lei=f.sexo==="F"?"CLT art. 386":"Lei 10.101/2000"; const need=Math.max(1,Math.floor(sem/N)); const lab=f.sexo==="F"?"mulher":"homem";
+      if(devem.has(f.id)) addAlert(al,"w",nome+" ("+lab+"): "+(dom||0)+" folga(s) aos domingos em "+sem+" semanas — abaixo do exigido (1 a cada "+N+", "+lei+"). Trabalhou domingo para cobrir a loja; compense a folga depois.");
+      else if(dom!=null && dom>=need) addAlert(al,"g",nome+" ("+lab+"): "+dom+" folga(s) aos domingos em "+sem+" semanas — conforme "+lei+" (1 a cada "+N+").");
+      else addAlert(al,"w",nome+" ("+lab+"): "+(dom||0)+" folga dominical em "+sem+" semanas — abaixo de 1 a cada "+N+" ("+lei+").");
     });
   }
   // por funcionário
@@ -560,8 +583,10 @@ function renderConformidade(e,info){
     if(folgasN<2) addAlert(al,"e",nome+": só "+folgasN+" folga(s) na semana — a norma exige 2.");
     let over10=0, over824=0, needInt=false;
     wk.work.forEach(d=>{ const dm=wk.durByDay[d]; if(dm>over10)over10=dm>600?dm:over10; if(semCCT&&dm>504&&dm>over824)over824=dm; if(dm>360&&(+wk.byDay[d].intervalo||0)<60)needInt=true; });
+    const ex=weekExtras(e,wk);
     if(over10>600) addAlert(al,"e",nome+": "+fmtDur(over10)+" em um dia — acima de 10h não é permitido (teto diário). Reveja o horário.");
-    else if(over824>504) addAlert(al,(ajustar&&!f.meioPeriodo&&!wk.hasOverride)?"w":"e",nome+": "+fmtDur(over824)+" em um dia passa de 8h24. Sem CCT, o limite do STF é 8h24/dia.");
+    else if(over824>504) addAlert(al,"w",nome+": "+fmtDur(over824)+" em um dia passa de 8h24 — sem CCT, o excedente entra como hora extra (já somado na folha).");
+    if(ex.extraMin>0) addAlert(al,"w",nome+": "+fmtDur(ex.extraMin)+" de hora extra na semana"+(ex.extraDia>0&&ex.extraSem>0?" ("+fmtDur(ex.extraDia)+" por passar de 8h24/dia + "+fmtDur(ex.extraSem)+" por passar de "+(meta/60)+"h/semana)":(ex.extraDia>0?" (por passar de 8h24/dia)":" (por passar de "+(meta/60)+"h/semana)"))+" — ver valores na folha.");
     if(ajustar && !f.meioPeriodo){
       if(dias>0 && Math.abs(tot-meta)<=5) addAlert(al,"g",nome+": "+fmtDur(tot)+"/semana (fecha "+(meta/60)+"h)"+ovTxt+".");
       else if(tot>meta+5) addAlert(al,"w",nome+": "+fmtDur(tot)+"/semana passa da meta de "+(meta/60)+"h"+ovTxt+" — reveja os horários fixos.");
@@ -577,8 +602,8 @@ function renderFolhaAv(e,info){
   const fs0=folgasSemana(e,info,0);
   e.funcionarios.forEach(f=>{
     const folga=fs0[f.id]; const wk=funcWeek(e,f,folga); const s=+f.salario||0;
-    const hN=s/div; const semanal=wk.total;
-    const extrasH=Math.max(0,(semanal-e.meta)/60);
+    const hN=s/div; const ex=weekExtras(e,wk);
+    const extrasH=ex.extraMin/60;
     const extrasMes=extrasH*semMes*hN*(1+pct/100);
     const notMin=wk.night;
     const notMes=(notMin/52.5)*semMes*hN*((+e.adNot||0)/100);
@@ -643,7 +668,7 @@ function buildFolhaAv(){
   h+='<h3 style="margin:14px 0 4px;font-size:12px">Valores a pagar (mês, estimado)</h3><p style="font-size:11px;margin:0;line-height:1.6">';
   h+=e.funcionarios.map(f=>{
     const folga=fs0[f.id]; const wk=funcWeek(e,f,folga); const s=+f.salario||0; const hN=s/div;
-    const semanal=wk.total; const extrasH=Math.max(0,(semanal-e.meta)/60);
+    const ex=weekExtras(e,wk); const extrasH=ex.extraMin/60;
     const extrasMes=extrasH*semMes*hN*(1+pct/100);
     const notMin=wk.night;
     const notMes=(notMin/52.5)*semMes*hN*((+e.adNot||0)/100);
@@ -654,7 +679,7 @@ function buildFolhaAv(){
     p+=' = <b>total '+brl(total)+'</b>';
     return p;
   }).join('<br>');
-  h+='</p><p style="font-size:9px;color:#555;margin:6px 0 0">Extras = horas que passam de '+(e.meta/60)+'h/semana. Valores mensais estimados (semana × 4,33), sem reflexos de DSR. Confira a CCT.</p>';
+  h+='</p><p style="font-size:9px;color:#555;margin:6px 0 0">Extras = horas que passam de '+(e.meta/60)+'h/semana'+(!e.temCCT?' ou de 8h24 em um dia (teto diário do STF sem CCT)':'')+'. Valores mensais estimados (semana × 4,33), sem reflexos de DSR. Confira a CCT.</p>';
   h+=legalFooter()+'</div>'; return h;
 }
 
